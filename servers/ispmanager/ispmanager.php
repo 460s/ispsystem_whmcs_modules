@@ -1,6 +1,7 @@
 <?php
 
 $op = "";
+use WHMCS\Database\Capsule as DB;
 
 function ispmanager_MetaData(){
     return array(
@@ -108,7 +109,7 @@ function ispmgr_get_external_id($params) {
 }
 
 function ispmgr_api_request($ip, $username, $password, $func, $param) {
-	global $op;
+    global $op;
 
 	$default_xml_string = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<doc/>\n";
 	$default_xml_error_string = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<doc><error type=\"curl\"/></doc>\n";
@@ -149,15 +150,16 @@ function ispmanager_GenerateUsername($params, $template) {
 	$template = str_replace("@ID@", $params["serviceid"], $template);
 	$template = str_replace("@DOMAIN@", $params["domain"], $template);
 
-	$result = select_query("tblhosting","tblhosting.username",array("tblhosting.username" => $template, "id"=>array("sqltype"=>"NEQ","value"=>$params["serviceid"])));
-	$num = 1;
-	while (mysql_num_rows($result) > 0) {
-		$template = $template + string($num);
-		$result = select_query("tblhosting","tblhosting.username",array("tblhosting.username" => $template, "id"=>array("sqltype"=>"NEQ","value"=>$params["serviceid"])));
-		$num++;
-	}
+    do{
+        $template .= $num;
+        $query = DB::table('tblhosting')->where([
+            ['username', $template],
+            ['id', '!=', $params["serviceid"]]
+        ])->get();
+        $num++;
+    }while(count($query) > 0);
 
-	update_query("tblhosting", array("username" => $template), array("id" => $params["serviceid"]));
+    DB::table('tblhosting')->where('id', $params["serviceid"])->update(['username' => $template]);
 
 	return $template;
 }
@@ -340,7 +342,7 @@ function ispmanager_CreateAccount($params) {
 		$main_ip = $find_ip[0]->name;
 	}
 
-	update_query("tblhosting", array("dedicatedip" => $main_ip), array("id" => $params["serviceid"]));
+    DB::table('tblhosting')->where('id', $params["serviceid"])->update(['dedicatedip' => $main_ip]);
 
 	if ($ip_count > 0 || $ipv6_count > 0) {
 		$ip_list = "";
@@ -375,7 +377,7 @@ function ispmanager_CreateAccount($params) {
 			$ipv6_count--;
 		}
 
-		update_query("tblhosting", array("assignedips" => $ip_list), array("id" => $params["serviceid"]));
+        DB::table('tblhosting')->where('id', $params["serviceid"])->update(['assignedips' => $ip_list]);
 	}
 
 	return "success";
@@ -521,21 +523,6 @@ function ispmanager_ChangePackage($params) {
 	return "success";
 }
 
-function ispmanager_UsageUpdate($params) {
-	global $op;
-	$op = "usage";
-
-	$serverid = $params['serverid'];
-	$server_ip = $params['serverip'];
-	$server_username = $params['serverusername'];
-	$server_password = $params['serverpassword'];
-
-	$result = select_query("tblhosting","tblhosting.id,mod_ispsystem.external_id",array("tblhosting.server" => $serverid),"","","","mod_ispsystem on mod_ispsystem.serviceid = tblhosting.id");
-
-	if (!$result)
-		logActivity("ISPmanager get stats error: ".mysql_error());
-}
-
 function ispmanager_ClientArea($params) {
 	global $op;
 	$op = "client area";
@@ -607,7 +594,7 @@ function ispmanager_AdminLink($params) {
 						</form>";
 		}
 
-		return $code;
+    return $code;
 }
 
 ?>

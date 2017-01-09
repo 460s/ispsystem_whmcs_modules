@@ -2,7 +2,7 @@
 
 $op = "";
 
-function ispmanager_MetaData(){
+function vemanager_MetaData(){
     return array(
         'DisplayName' => 'VEmanager',
         'RequiresServer' => true,
