@@ -150,12 +150,15 @@ function ispmanager_GenerateUsername($params, $template) {
 	$template = str_replace("@ID@", $params["serviceid"], $template);
 	$template = str_replace("@DOMAIN@", $params["domain"], $template);
 
+    $num = "";
     do{
         $template .= $num;
-        $query = DB::table('tblhosting')->where([
-            ['username', $template],
-            ['id', '!=', $params["serviceid"]]
-        ])->get();
+        $query = DB::table('tblhosting')
+            ->select('username')
+            ->where([
+                ['username', $template],
+                ['id', '!=', $params["serviceid"]]
+            ])->get();
         $num++;
     }while(count($query) > 0);
 

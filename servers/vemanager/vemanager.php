@@ -1,6 +1,7 @@
 <?php
 
 $op = "";
+use WHMCS\Database\Capsule as DB;
 
 function vemanager_MetaData(){
     return array(
@@ -79,45 +80,30 @@ function vemanager_ConfigOptions() {
 }
 
 function vemanager_AdminServicesTabFields($params) {
-	$result = select_query("mod_ispsystem","external_id",array("serviceid"=>$params["serviceid"]));
-	$value = "";
-	if ($result) {
-		$data = mysql_fetch_array($result);
-		$value = $data["external_id"];
-	}
-	return array("VEmanager ID" => "<input type='text' name='vemanager_id' size='16' value='".$value."' />");
+    $value = ve_get_external_id($params);
+	return array("VEmanager ID" => "<textarea></textarea><input type='text' name='vemanager_id' size='16' value='".$value."' />");
 }
 
 function ve_get_external_id($params) {
-	$result = select_query("mod_ispsystem","external_id",array("serviceid"=>$params["serviceid"]));
-        $data = mysql_fetch_array($result);
-	if ($data) {
-		return $data["external_id"];
-	} else {
-		return "";
-	}
+    $result = DB::table('mod_ispsystem')
+        ->select('external_id')
+        ->where('serviceid', $params["serviceid"])
+        ->first();
+    $value = "";
+    if ($result) {
+        return $result->external_id;
+    } else {
+        return "";
+    }
 }
 
 function ve_save_external_id($params, $external_id) {
-	$result = select_query("mod_ispsystem","",array("serviceid"=>$params["serviceid"]));
-	$data = mysql_fetch_array($result);
+    $vmid = ve_get_external_id($params);
 
-	if ($data) {
-                update_query("mod_ispsystem",
-                        array(
-                                "external_id" => $external_id,
-                                ),
-                        array(
-                                "serviceid" => $params["serviceid"]
-                                )
-                        );
-        } else {
-                insert_query("mod_ispsystem",
-                        array(
-                                "external_id" => $external_id,
-                                "serviceid" => $params["serviceid"]
-                                )
-                        );
+	if ($vmid) {
+        DB::table('mod_ispsystem')->where('serviceid', $params["serviceid"])->update(['external_id' => $external_id]);
+    } else {
+        DB::table('mod_ispsystem')->insert(['external_id' => $external_id, 'serviceid' => $params["serviceid"]]);
         }
 }
 
@@ -277,7 +263,7 @@ function vemanager_CreateAccount($params) {
 		}
 	}
 
-	update_query("tblhosting", array("dedicatedip" => $container_ip), array("id" => $params["serviceid"]));
+    DB::table('tblhosting')->where('id', $params["serviceid"])->update(['dedicatedip' => $container_ip]);
 
 	$ip_list = "";
 	while ($ip_count > 0) {
@@ -306,7 +292,7 @@ function vemanager_CreateAccount($params) {
 		$ipv6_count--;
         }
 
-	update_query("tblhosting", array("assignedips" => $ip_list), array("id" => $params["serviceid"]));
+    DB::table('tblhosting')->where('id', $params["serviceid"])->update(['assignedips' => $ip_list]);
 
 	return "success";
 }
@@ -489,6 +475,7 @@ function vemanager_ClientArea($params) {
 	return $code;
 }
 
+/* Сбор статистики с VEmgr */
 function vemanager_UsageUpdate($params) {
 	global $op;
 	$op = "usage";
@@ -498,12 +485,16 @@ function vemanager_UsageUpdate($params) {
 	$server_username = $params['serverusername'];
 	$server_password = $params['serverpassword'];
 
-	$result = select_query("tblhosting","tblhosting.id,mod_ispsystem.external_id",array("tblhosting.server" => $serverid),"","","","mod_ispsystem on mod_ispsystem.serviceid = tblhosting.id");
+    $result = DB::table('tblhosting')
+            ->join('mod_ispsystem', 'mod_ispsystem.serviceid', '=', 'tblhosting.id')
+            ->where('tblhosting.server', '=', '3')
+            ->select('tblhosting.id', 'mod_ispsystem.external_id')
+            ->get();
 
 	if (!$result)
 		logActivity("VEmanager get stats error: ".mysql_error());
 
-	while ($data = mysql_fetch_array($result)) {
+	foreach ($result as $data) {
 		$external_id = $data["external_id"];
 
 		if ($external_id == "")
@@ -541,23 +532,21 @@ function vemanager_UsageUpdate($params) {
 		$disklimit = $matches[0][0];
 
 		if ($disklimit > 0) {
-			update_query("tblhosting",array(
-				"diskusage"=>$diskusage,
-				"disklimit"=>$disklimit,
-			        "bwusage"=>$bwusage,
-				"lastupdate"=>"now()",
-        		    ), array(
-				"id"=>$data["id"],
-				    )
-			    );
+            DB::table('tblhosting')
+                ->where('id', $data["id"])
+                ->update([
+                    ['diskusage' => $diskusage],
+                    ['disklimit' => $disklimit],
+                    ['bwusage' => $bwusage],
+                    ['lastupdate' => 'now()']
+                ]);
 		} else {
-			update_query("tblhosting",array(
-                                "bwusage"=>$values['bwusage'],
-                                "lastupdate"=>"now()",
-                            ), array(
-                                "id"=>$data["id"],
-                                    )
-                            );
+            DB::table('tblhosting')
+                ->where('id', $data["id"])
+                ->update([
+                    ['bwusage' => $values['bwusage']],
+                    ['lastupdate' => 'now()']
+                ]);
 		}
 	}
 }
