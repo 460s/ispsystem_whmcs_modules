@@ -1,52 +1,15 @@
 <?php
+use WHMCS\Database\Capsule as DB;
 
-function dci_get_external_id($params) {
-	$result = select_query("mod_ispsystem","external_id",array("serviceid"=>$params["serviceid"]));
-	if ($result) {
-		$data = mysql_fetch_array($result);
-		if ($data) {
-			return $data["external_id"];
-		} else {
-			return "";
-		}
-	} else {
-		return "";
-	}
-}
-
-function dci_save_external_id($params, $external_id) {
-	$result = select_query("mod_ispsystem","",array("serviceid"=>$params["serviceid"]));
-	$data = mysql_fetch_array($result);
-
-	if ($data) {
-                update_query("mod_ispsystem",
-                        array(
-                                "external_id" => $external_id,
-                                ),
-                        array(
-                                "serviceid" => $params["serviceid"]
-                                )
-                        );
-        } else {
-                insert_query("mod_ispsystem",
-                        array(
-                                "external_id" => $external_id,
-                                "serviceid" => $params["serviceid"]
-                                )
-                        );
-        }
-}
-
-function dcimanager_AdminServicesTabFields($params) {
-	return array("DCImanager ID" => "<input type='text' name='dcimanager_id' size='16' value='".dci_get_external_id($params)."' />");
-}
-
-function dcimanager_AdminServicesTabFieldsSave($params) {
-	dci_save_external_id($params, $_POST["dcimanager_id"]);
+function dcimanager_MetaData(){
+    return array(
+		'DisplayName' => 'DCImanager',
+		'RequiresServer' => true,
+    );
 }
 
 function dcimanager_ConfigOptions() {
-	$configarray = array(
+	return array(
 		"package" => 	array(
 					"FriendlyName" => "Package Name",
 					"Type" => "text",
@@ -58,94 +21,123 @@ function dcimanager_ConfigOptions() {
 					"Size" => "64",
 				),
 	);
+}
 
-	return $configarray;
+function dci_get_external_id($params) {
+	$result = DB::table('mod_ispsystem')
+		->select('external_id')
+		->where('serviceid', $params["serviceid"])
+		->first();
+	if ($result) {
+		return $result->external_id;
+	} else {
+		return "";
+	}
+}
+
+function dci_save_external_id($params, $external_id) {
+	$vmid = vm_get_external_id($params);
+
+	if ($vmid) {
+		DB::table('mod_ispsystem')->where('serviceid', $params["serviceid"])->update(['external_id' => $external_id]);
+	} else {
+		DB::table('mod_ispsystem')->insert(['external_id' => $external_id, 'serviceid' => $params["serviceid"]]);
+	}
+}
+
+function dcimanager_AdminServicesTabFields($params) {
+	$value = dci_get_external_id($params);
+	return array("DCImanager ID" => "<input type='text' name='dcimanager_id' size='16' value='".$value."' />");
+}
+
+function dcimanager_AdminServicesTabFieldsSave($params) {
+	dci_save_external_id($params, $_POST["dcimanager_id"]);
 }
 
 function dci_api_request3($ip, $func, $param) {
 	global $op;
-	
+
 	$default_xml_string = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<doc/>\n";
 	$default_xml_error_string = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<doc><error type=\"curl\"/></doc>\n";
-	
+
 	$url = "https://".$ip."/dcimgr";
 	$postfields = array("out" => "xml", "func" => (string)$func, );
 	$options = array ('CURLOPT_TIMEOUT' => '60');
 	foreach ($param as $key => &$value) {
 		$value = (string)$value;
 	}
-	
+
 	$response = curlCall($url, array_merge($postfields, $param), $options);
-	
+
 	logModuleCall("dcimanager:".$func, $op, array_merge($postfields, $param), $response, $response);
-	
+
 	$out = simplexml_load_string($default_xml_string);
-	
+
 	try {
 		$out = new SimpleXMLElement($response);
 	} catch (Exception $e) {
 		$out = simplexml_load_string($default_xml_error_string);
 		$out->error->addChild("msg", $e->getMessage());
 	}
-	
+
 	return $out;
 }
 
 function dci_api_request4($ip, $auth, $func, $param) {
 	global $op;
-	
+
 	$default_xml_string = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<doc/>\n";
 	$default_xml_error_string = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<doc><error type=\"curl\"/></doc>\n";
-	
+
 	$url = "https://".$ip."/dcimgr";
 	$postfields = array("out" => "xml", "func" => (string)$func, "auth" => (string)$auth, );
 	$options = array ('CURLOPT_TIMEOUT' => '60');
 	foreach ($param as $key => &$value) {
 		$value = (string)$value;
 	}
-	
+
 	$response = curlCall($url, array_merge($postfields, $param), $options);
-	
+
 	logModuleCall("dcimanager:".$func, $op, array_merge($postfields, $param), $response, $response);
-	
+
 	$out = simplexml_load_string($default_xml_string);
-	
+
 	try {
 		$out = new SimpleXMLElement($response);
 	} catch (Exception $e) {
 		$out = simplexml_load_string($default_xml_error_string);
 		$out->error->addChild("msg", $e->getMessage());
 	}
-	
+
 	return $out;
 }
 
 function dci_api_request($ip, $username, $password, $func, $param) {
 	global $op;
-	
+
 	$default_xml_string = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<doc/>\n";
 	$default_xml_error_string = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<doc><error type=\"curl\"/></doc>\n";
-	
+
 	$url = "https://".$ip."/dcimgr";
 	$postfields = array("out" => "xml", "func" => (string)$func, "authinfo" => (string)$username.":".(string)$password, );
 	$options = array ('CURLOPT_TIMEOUT' => '60');
 	foreach ($param as $key => &$value) {
 		$value = (string)$value;
 	}
-	
+
 	$response = curlCall($url, array_merge($postfields, $param), $options);
-	
+
 	logModuleCall("dcimanager:".$func, $op, array_merge($postfields, $param), $response, $response, array ($password));
-	
+
 	$out = simplexml_load_string($default_xml_string);
-	
+
 	try {
 		$out = new SimpleXMLElement($response);
 	} catch (Exception $e) {
 		$out = simplexml_load_string($default_xml_error_string);
 		$out->error->addChild("msg", $e->getMessage());
 	}
-	
+
 	return $out;
 }
 
@@ -166,7 +158,7 @@ function dci_set_server_owner($params, $id, $user_id) {
 
 	$server_props = dci_api_request($server_ip, $server_username, $server_password, "server.edit", array("elid" => $id));
 
-	return dci_api_request($server_ip, $server_username, $server_password, "server.edit", 
+	return dci_api_request($server_ip, $server_username, $server_password, "server.edit",
 				array(	"elid" => $id,
 					"sok" => "ok",
 					"mac" => $server_props->mac,
@@ -186,10 +178,10 @@ function dci_set_server_domain($params, $id, $domain) {
 
 	$error = "";
 	while(list( , $ip_id) = each($ip_list)) {
-		$error = dci_find_error(dci_api_request($server_ip, $server_username, $server_password, "iplist.edit", 
-				array(	"elid" => (string)$ip_id, 
-					"sok" => "ok", 
-					"plid" => $id, 
+		$error = dci_find_error(dci_api_request($server_ip, $server_username, $server_password, "iplist.edit",
+				array(	"elid" => (string)$ip_id,
+					"sok" => "ok",
+					"plid" => $id,
 					"domain" => $domain)));
 	}
 
@@ -227,7 +219,7 @@ function dcimanager_CreateAccount($params) {
 
 	$pwd_results = localAPI("encryptpassword", array("password2" => $password), "admin");
 
-	update_query("tblhosting", array("password" => $pwd_results["password"]), array("id" => $params["serviceid"]));
+	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['password' => $pwd_results["password"]]);
 
 	if ($user_id == "") {
 		$user_create_param = array (
@@ -308,7 +300,7 @@ function dcimanager_CreateAccount($params) {
 
 	dci_set_server_domain($params, $server_id, $params["domain"]);
 
-	$dci_install = dci_api_request($server_ip, $server_username, $server_password, "server.operations", 
+	$dci_install = dci_api_request($server_ip, $server_username, $server_password, "server.operations",
 					array(	"sok" => "ok",
 						"elid" => $server_id,
 						"operation" => "ostemplate",
@@ -351,7 +343,7 @@ function dcimanager_CreateAccount($params) {
 		}
 	}
 
-	update_query("tblhosting", array("dedicatedip" => $dci_ip), array("id" => $params["serviceid"]));
+	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['dedicatedip' => $dci_ip]);
 
 	dci_set_server_owner($params, $server_id, $user_id);
 	dci_set_server_domain($params, $server_id, $params["domain"]);
@@ -387,7 +379,7 @@ function dcimanager_CreateAccount($params) {
 		$ipv6_count--;
         }
 
-	update_query("tblhosting", array("assignedips" => $ip_list), array("id" => $params["serviceid"]));
+	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['assignedips' => $ip_list]);
 
 	return "success";
 }
@@ -417,11 +409,11 @@ function dci_process_client_operation($func, $params) {
     if ($id == "") {
             return "Unknown server!";
     }
-        
+
     $server_ip = $params["serverip"];
     $server_username = $params["serverusername"];
     $server_password = $params["serverpassword"];
-    
+
     $key = strtolower(dcimanager_generate_random_string(32));
 	$newkey = dci_api_request($server_ip, $server_username, $server_password, "session.newkey", array("username" => $params["username"], "key" => $key));
 
@@ -430,9 +422,9 @@ function dci_process_client_operation($func, $params) {
 		logActivity($func." error: ".$error);
 		return "Error";
 	}
-	
+
 	$authinfo = dci_api_request3($server_ip, "auth", array("username" => $params["username"], "key" => $key));
-	
+
 	$auth = (string)($authinfo->auth);
 
     $result = dci_api_request4($server_ip, $auth, $func, array("elid" => $id));
@@ -501,7 +493,7 @@ function dcimanager_ChangePackage($params) {
 }
 
 function dcimanager_ClientAreaCustomButtonArray() {
-	$button_array = array(
+	return array(
 				"Reboot Server" => "reboot",
 				"Power off Server" => "poweroff",
 				"Power on Server" => "poweron",
@@ -509,8 +501,6 @@ function dcimanager_ClientAreaCustomButtonArray() {
 				"Server network on" => "networkon",
 				"Reinstall" => "reinstall",
 			);
-
-	return $button_array;
 }
 
 function dcimanager_AdminCustomButtonArray() {
@@ -523,7 +513,7 @@ function dcimanager_reinstall($params) {
 
 	if ($_POST["processaction"] == "on") {
 		$os = $params["configoption2"];
-	
+
 		if (array_key_exists("os", $params["configoptions"])) {
 		        $os = ($params["configoptions"]["os"]);
 		}
@@ -531,7 +521,7 @@ function dcimanager_reinstall($params) {
 		if (array_key_exists("OS", $params["configoptions"])) {
 		        $os = ($params["configoptions"]["OS"]);
 		}
-	
+
 		if (array_key_exists("ostemplate", $params["configoptions"])) {
 		        $os = ($params["configoptions"]["ostemplate"]);
 		}
@@ -539,7 +529,7 @@ function dcimanager_reinstall($params) {
 		    $server_ip = $params["serverip"];
 	    $server_username = $params["serverusername"];
 	    $server_password = $params["serverpassword"];
-    
+
 		    $key = strtolower(dcimanager_generate_random_string(32));
 	        $newkey = dci_api_request($server_ip, $server_username, $server_password, "session.newkey", array("username" => $params["username"], "key" => $key));
 
@@ -596,44 +586,44 @@ function dcimanager_poweron($params) {
 function dcimanager_networkoff($params) {
 	global $op;
 	$op = "networkoff";
-	
+
 	$id = dci_get_external_id($params);
     if ($id == "") {
 		return "Unknown server!";
     }
-        
+
     $server_ip = $params["serverip"];
     $server_username = $params["serverusername"];
     $server_password = $params["serverpassword"];
-	
+
 	$server_list = dci_api_request($server_ip, $server_username, $server_password, "server.connection", array("elid" => (string)$id));
-	
-	foreach($server_list->xpath("/doc/elem[type='Switch']") as $elem) { 
+
+	foreach($server_list->xpath("/doc/elem[type='Switch']") as $elem) {
 		dci_api_request($server_ip, $server_username, $server_password, "server.connection.off", array("plid" => (string)$id, "elid" => (string)$elem->id));
-	} 
-	
+	}
+
 	return "success";
 }
 
 function dcimanager_networkon($params) {
 	global $op;
 	$op = "networkon";
-	
+
 	$id = dci_get_external_id($params);
     if ($id == "") {
 		return "Unknown server!";
     }
-        
+
     $server_ip = $params["serverip"];
     $server_username = $params["serverusername"];
     $server_password = $params["serverpassword"];
-	
+
 	$server_list = dci_api_request($server_ip, $server_username, $server_password, "server.connection", array("elid" => (string)$id));
-	
-	foreach($server_list->xpath("/doc/elem[type='Switch']") as $elem) { 
+
+	foreach($server_list->xpath("/doc/elem[type='Switch']") as $elem) {
 		dci_api_request($server_ip, $server_username, $server_password, "server.connection.on", array("plid" => (string)$id, "elid" => (string)$elem->id));
-	} 
-	
+	}
+
 	return "success";
 }
 
@@ -641,11 +631,11 @@ function dcimanager_ServiceSingleSignOn(array $params)
 {
 	global $op;
 	$op = "ServiceSingleSignOn";
-	
+
 	$server_ip = $params["serverip"];
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
-	
+
 	try {
 		$key = strtolower(dcimanager_generate_random_string(32));
 		$newkey = dci_api_request($server_ip, $server_username, $server_password, "session.newkey", array("username" => $params["username"], "key" => $key));
@@ -663,7 +653,7 @@ function dcimanager_ServiceSingleSignOn(array $params)
 			'success' => true,
 			'redirectTo' => "https://".$server_ip."/dcimgr?checkcookie=no&func=auth&username=".$params["username"]."&key=".$key,
         );
-	} catch (Exception $e) {        
+	} catch (Exception $e) {
 		return array(
 			'success' => false,
 			'errorMsg' => "Error",
@@ -679,11 +669,11 @@ function dcimanager_AdminSingleSignOn(array $params)
 	$server_ip = $params["serverip"];
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
-	
+
 	try {
 		$key = strtolower(dcimanager_generate_random_string(32));
 		$newkey = dci_api_request($server_ip, $server_username, $server_password, "session.newkey", array("username" => $server_username, "key" => $key));
-        
+
         $error = dci_find_error($newkey);
 		if ($error != "") {
 			logActivity("AdminSingleSignOn error: ".$error);
@@ -697,7 +687,7 @@ function dcimanager_AdminSingleSignOn(array $params)
 			'success' => true,
 			'redirectTo' => "https://".$server_ip."/dcimgr?checkcookie=no&func=auth&username=".$server_username."&key=".$key,
         );
-    } catch (Exception $e) {  
+    } catch (Exception $e) {
     	return array(
 			'success' => false,
 			'errorMsg' => $e->getMessage(),
@@ -715,7 +705,11 @@ function dcimanager_UsageUpdate($params) {
 		$server_username = $params['serverusername'];
 		$server_password = $params['serverpassword'];
 
-		$result = select_query("tblhosting","tblhosting.id,mod_ispsystem.external_id",array("tblhosting.server" => $serverid),"","","","mod_ispsystem on mod_ispsystem.serviceid = tblhosting.id");
+		$result = DB::table('tblhosting')
+				->join('mod_ispsystem', 'mod_ispsystem.serviceid', '=', 'tblhosting.id')
+				->where('tblhosting.server', '=', $serverid)
+				->select('tblhosting.id', 'mod_ispsystem.external_id')
+				->get();
 
 		if ($server_ip == "") {
 			logActivity("DCImanager empty IP");
@@ -730,7 +724,7 @@ function dcimanager_UsageUpdate($params) {
 		$traffic_data = dci_api_request($server_ip, $server_username, $server_password, "traffic", array("sok" => "ok",
 														 "period" => "currentmonth"));
 
-		while ($data = mysql_fetch_array($result)) {
+		foreach ($result as $data) {
 			$external_id = $data["external_id"];
 
 			if ($external_id == "")
@@ -738,26 +732,25 @@ function dcimanager_UsageUpdate($params) {
 
 
 			$bwusage = 0;
-		
-			$find_in = $traffic_data->xpath("//elem[id='".$external_id."']");
-		    $find_out = $traffic_data->xpath("//elem[id='".$external_id."']");
 
-		    $find_in = $find_in[0]->rx;
-		    $find_out = $find_out[0]->tx;
+			$find_in = $traffic_data->xpath("//elem[id='".$external_id."']");
+			$find_out = $traffic_data->xpath("//elem[id='".$external_id."']");
+
+			$find_in = $find_in[0]->rx;
+			$find_out = $find_out[0]->tx;
 
 			$bwusage = 1024.0 * floatval($find_in) + 1024.0 * floatval($find_out);
-		
+
 			if (isset($find_in['orig'])) {
 				$bwusage = floatval($find_in['orig']) / 1024 / 1024 + floatval($find_out['orig']) / 1024 / 1024;
 			}
 
-			update_query("tblhosting",array(
-		                         "bwusage"=>$bwusage,
-		                         "lastupdate"=>"now()",
-		                        ), array(
-		                         "id"=>$data["id"],
-		                                )
-		           );
+			DB::table('tblhosting')
+			   ->where('id', $data["id"])
+			   ->update([
+				   ['bwusage' => $bwusage],
+				   ['lastupdate' => 'now()']
+			   ]);
 		}
 	} catch (Exception $e) {
 		logActivity("UsageUpdate error: ".$e->getMessage());

@@ -1,6 +1,5 @@
 <?php
 
-$op = "";
 use WHMCS\Database\Capsule as DB;
 
 function vemanager_MetaData(){
@@ -13,75 +12,75 @@ function vemanager_MetaData(){
 function vemanager_ConfigOptions() {
 	return array(
 		"package" => array(
-					"FriendlyName" => "Package Name",
-					"Type" => "text",
-					"Size" => "25",
+            "FriendlyName" => "Package Name",
+            "Type" => "text",
+            "Size" => "25",
 				),
 		"os" =>	array(
-					"FriendlyName" => "Operation system",
-					"Type" => "text",
-					"Size" => "64",
+            "FriendlyName" => "Operation system",
+            "Type" => "text",
+            "Size" => "64",
 				),
 		"fstype" =>	array(
-					"FriendlyName" => "File system",
-					"Type" => "dropdown",
-					"Options" => "ploop,simfs",
-					"Default" => "ploop",
+            "FriendlyName" => "File system",
+            "Type" => "dropdown",
+            "Options" => "ploop,simfs",
+            "Default" => "ploop",
 				),
 		"hdd" => array(
-          "FriendlyName" => "Disk quota",
-          "Type" => "text",
-          "Size" => "8",
-          "Description" => "MiB",
+            "FriendlyName" => "Disk quota",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "MiB",
         ),
 		"mem" => array(
-					"FriendlyName" => "Memory quota",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "MiB",
+            "FriendlyName" => "Memory quota",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "MiB",
 				),
 		"cpu" => array(
-					"FriendlyName" => "Processors count",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "Unit",
+            "FriendlyName" => "Processors count",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "Unit",
 				),
 		"cpufreq" => array(
-					"FriendlyName" => "Processor frequency",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "MHz",
+            "FriendlyName" => "Processor frequency",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "MHz",
 				),
 		"numproc" => array(
-					"FriendlyName" => "Processes count",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "Unit",
+            "FriendlyName" => "Processes count",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "Unit",
 				),
 		"numfile" => array(
-					"FriendlyName" => "Files count",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "Unit",
+            "FriendlyName" => "Files count",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "Unit",
 				),
 		"family" => array(
-					"FriendlyName" => "Main IP address type",
-          "Type" => "dropdown",
-          "Options" => "ipv4,ipv6",
-          "Default" => "ipv4",
+            "FriendlyName" => "Main IP address type",
+            "Type" => "dropdown",
+            "Options" => "ipv4,ipv6",
+            "Default" => "ipv4",
 				),
 		"sshkey" =>	array(
-					"FriendlyName" => "SSH public key",
-					"Type" => "textarea",
-					"Rows" => "10",
-					"Cols" => "30",
+            "FriendlyName" => "SSH public key",
+            "Type" => "textarea",
+            "Rows" => "10",
+            "Cols" => "30",
 				),
 	);
 }
 
 function vemanager_AdminServicesTabFields($params) {
     $value = ve_get_external_id($params);
-	return array("VEmanager ID" => "<textarea></textarea><input type='text' name='vemanager_id' size='16' value='".$value."' />");
+	return array("VEmanager ID" => "<input type='text' name='vemanager_id' size='16' value='".$value."' />");
 }
 
 function ve_get_external_id($params) {
@@ -89,7 +88,6 @@ function ve_get_external_id($params) {
         ->select('external_id')
         ->where('serviceid', $params["serviceid"])
         ->first();
-    $value = "";
     if ($result) {
         return $result->external_id;
     } else {
@@ -104,7 +102,7 @@ function ve_save_external_id($params, $external_id) {
         DB::table('mod_ispsystem')->where('serviceid', $params["serviceid"])->update(['external_id' => $external_id]);
     } else {
         DB::table('mod_ispsystem')->insert(['external_id' => $external_id, 'serviceid' => $params["serviceid"]]);
-        }
+    }
 }
 
 function vemanager_AdminServicesTabFieldsSave($params) {
@@ -487,7 +485,7 @@ function vemanager_UsageUpdate($params) {
 
     $result = DB::table('tblhosting')
             ->join('mod_ispsystem', 'mod_ispsystem.serviceid', '=', 'tblhosting.id')
-            ->where('tblhosting.server', '=', '3')
+            ->where('tblhosting.server', '=', $serverid)
             ->select('tblhosting.id', 'mod_ispsystem.external_id')
             ->get();
 

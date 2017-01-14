@@ -1,103 +1,93 @@
 <?php
+use WHMCS\Database\Capsule as DB;
+
+function vmmanager_MetaData(){
+    return array(
+		'DisplayName' => 'VMmanager',
+		'RequiresServer' => true,
+    );
+}
+
+function vmmanager_ConfigOptions() {
+	return array(
+		"package" => 	array(
+			"FriendlyName" => "Package Name",
+			"Type" => "text",
+			"Size" => "25",
+				),
+		"os" =>		array(
+			"FriendlyName" => "Operation system",
+			"Type" => "text",
+			"Size" => "64",
+				),
+		"hdd" =>        array(
+			"FriendlyName" => "Disk quota",
+			"Type" => "text",
+			"Size" => "8",
+			"Description" => "MiB",
+                                ),
+		"mem" => 	array(
+			"FriendlyName" => "Memory quota",
+			"Type" => "text",
+			"Size" => "8",
+			"Description" => "MiB",
+				),
+		"cpu" =>	array(
+			"FriendlyName" => "Processors count",
+			"Type" => "text",
+			"Size" => "8",
+			"Description" => "Unit",
+				),
+		"cpufreq" => 	array(
+			"FriendlyName" => "Processor frequency",
+			"Type" => "text",
+			"Size" => "8",
+			"Description" => "MHz",
+				),
+		"family" =>	array(
+			"FriendlyName" => "Main IP address type",
+			"Type" => "dropdown",
+			"Options" => "ipv4,ipv6",
+			"Default" => "ipv4",
+				),
+		"sshkey" =>	array(
+			"FriendlyName" => "SSH public key",
+			"Type" => "textarea",
+			"Rows" => "10",
+			"Cols" => "30",
+				),
+	);
+}
 
 function vmmanager_AdminServicesTabFields($params) {
-	$result = select_query("mod_ispsystem","external_id",array("serviceid"=>$params["serviceid"]));
-	$value = "";
-	if ($result) {
-		$data = mysql_fetch_array($result);
-		$value = $data["external_id"];
-	}
+	$value = vm_get_external_id($params);
 	return array("VMmanager ID" => "<input type='text' name='vmmanager_id' size='16' value='".$value."' />");
 }
 
 function vm_get_external_id($params) {
-	$result = select_query("mod_ispsystem","external_id",array("serviceid"=>$params["serviceid"]));
-        $data = mysql_fetch_array($result);
-	if ($data) {
-		return $data["external_id"];
+	$result = DB::table('mod_ispsystem')
+		->select('external_id')
+		->where('serviceid', $params["serviceid"])
+		->first();
+	if ($result) {
+		return $result->external_id;
 	} else {
 		return "";
 	}
 }
 
 function vm_save_external_id($params, $external_id) {
-	$result = select_query("mod_ispsystem","",array("serviceid"=>$params["serviceid"]));
-	$data = mysql_fetch_array($result);
+	$vmid = vm_get_external_id($params);
 
-	if ($data) {
-                update_query("mod_ispsystem",
-                        array(
-                                "external_id" => $external_id,
-                                ),
-                        array(
-                                "serviceid" => $params["serviceid"]
-                                )
-                        );
-        } else {
-                insert_query("mod_ispsystem",
-                        array(
-                                "external_id" => $external_id,
-                                "serviceid" => $params["serviceid"]
-                                )
-                        );
-        }
+	if ($vmid) {
+		DB::table('mod_ispsystem')->where('serviceid', $params["serviceid"])->update(['external_id' => $external_id]);
+	} else {
+		DB::table('mod_ispsystem')->insert(['external_id' => $external_id, 'serviceid' => $params["serviceid"]]);
+	}
 }
 
 function vmmanager_AdminServicesTabFieldsSave($params) {
 	vm_save_external_id($params, $_POST["vmmanager_id"]);
-}
-
-function vmmanager_ConfigOptions() {
-	$configarray = array(
-		"package" => 	array(
-					"FriendlyName" => "Package Name",
-					"Type" => "text",
-					"Size" => "25",
-				),
-		"os" =>		array(
-					"FriendlyName" => "Operation system",
-					"Type" => "text",
-					"Size" => "64",
-				),
-		"hdd" =>        array(
-                                        "FriendlyName" => "Disk quota",
-                                        "Type" => "text",
-                                        "Size" => "8",
-                                        "Description" => "MiB",
-                                ),
-		"mem" => 	array(
-					"FriendlyName" => "Memory quota",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "MiB",
-				),
-		"cpu" =>	array(
-					"FriendlyName" => "Processors count",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "Unit",
-				),
-		"cpufreq" => 	array(
-					"FriendlyName" => "Processor frequency",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "MHz",
-				),
-		"family" =>	array(
-					"FriendlyName" => "Main IP address type",
-                                        "Type" => "dropdown",
-                                        "Options" => "ipv4,ipv6",
-                                        "Default" => "ipv4",
-				),
-		"sshkey" =>	array(
-					"FriendlyName" => "SSH public key",
-					"Type" => "textarea",
-					"Rows" => "10",
-					"Cols" => "30",
-				),
-	);
-
-	return $configarray;
 }
 
 function vm_api_request($ip, $username, $password, $func, $param) {
@@ -252,7 +242,7 @@ function vmmanager_CreateAccount($params) {
 		}
 	}
 
-	update_query("tblhosting", array("dedicatedip" => $vm_ip), array("id" => $params["serviceid"]));
+	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['dedicatedip' => $vm_ip]);
 
 	$ip_list = "";
 	while ($ip_count > 0) {
@@ -281,7 +271,7 @@ function vmmanager_CreateAccount($params) {
 		$ipv6_count--;
         }
 
-	update_query("tblhosting", array("assignedips" => $ip_list), array("id" => $params["serviceid"]));
+	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['assignedips' => $ip_list]);
 
 	return "success";
 }
@@ -434,18 +424,22 @@ function vmmanager_UsageUpdate($params) {
 	$server_username = $params['serverusername'];
 	$server_password = $params['serverpassword'];
 
-	$result = select_query("tblhosting","tblhosting.id,mod_ispsystem.external_id",array("tblhosting.server" => $serverid),"","","","mod_ispsystem on mod_ispsystem.serviceid = tblhosting.id");
+	$result = DB::table('tblhosting')
+			->join('mod_ispsystem', 'mod_ispsystem.serviceid', '=', 'tblhosting.id')
+			->where('tblhosting.server', '=', $serverid)
+			->select('tblhosting.id', 'mod_ispsystem.external_id')
+			->get();
 
 	if (!$result)
 		logActivity("VMmanager get stats error: ".mysql_error());
 
-	while ($data = mysql_fetch_array($result)) {
+	foreach ($result as $data) {
 		$external_id = $data["external_id"];
 
 		if ($external_id == "")
 			continue;
 
-		$reportvm = vm_api_request($server_ip, $server_username, $server_password, "reportvm", 
+		$reportvm = vm_api_request($server_ip, $server_username, $server_password, "reportvm",
 					array("type" => "day",
                                               "period" => "currentmonth",
 					      "server" => $external_id));
@@ -464,13 +458,12 @@ function vmmanager_UsageUpdate($params) {
                         $bwusage = (floatval($bwusage) + 1024.0 * floatval($rx));
                 }
 
-		update_query("tblhosting",array(
-                             "bwusage"=>$values['bwusage'],
-                             "lastupdate"=>"now()",
-                            ), array(
-                             "id"=>$data["id"],
-                                    )
-               );
+		DB::table('tblhosting')
+            ->where('id', $data["id"])
+            ->update([
+                ['bwusage' => $values['bwusage']],
+                ['lastupdate' => 'now()']
+            ]);
 	}
 }
 

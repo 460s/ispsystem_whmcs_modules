@@ -1,6 +1,4 @@
 <?php
-
-$op = "";
 use WHMCS\Database\Capsule as DB;
 
 function ispmanager_MetaData(){
