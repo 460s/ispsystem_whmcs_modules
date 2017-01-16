@@ -240,7 +240,7 @@ function dcimanager_CreateAccount($params) {
 	$admin_id = $find_user[0]->id;
 
 	$server_list = dci_api_request($server_ip, $server_username, $server_password, "server", array());
-	$find_server = $server_list->xpath("/doc/elem[(owner='' or not(owner)) and type='".$params["configoption1"]."' and hostname='free.ds' and not(blocked) and not(hwproblem) and not(diag_in_progress)]");
+	$find_server = $server_list->xpath("/doc/elem[(owner='' or not(owner)) and chassis_templ='".$params["configoption1"]."' and hostname='free.ds' and not(blocked) and not(hwproblem) and not(diag_in_progress)]");
 	$server_id = $find_server[0]->id;
 
 	if ($server_id == "")
@@ -748,8 +748,8 @@ function dcimanager_UsageUpdate($params) {
 			DB::table('tblhosting')
 			   ->where('id', $data["id"])
 			   ->update([
-				   ['bwusage' => $bwusage],
-				   ['lastupdate' => 'now()']
+				   'bwusage' => $bwusage,
+				   'lastupdate' => 'now()'
 			   ]);
 		}
 	} catch (Exception $e) {

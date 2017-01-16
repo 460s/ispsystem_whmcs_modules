@@ -533,17 +533,17 @@ function vemanager_UsageUpdate($params) {
             DB::table('tblhosting')
                 ->where('id', $data["id"])
                 ->update([
-                    ['diskusage' => $diskusage],
-                    ['disklimit' => $disklimit],
-                    ['bwusage' => $bwusage],
-                    ['lastupdate' => 'now()']
+                    'diskusage' => $diskusage,
+                    'disklimit' => $disklimit,
+                    'bwusage' => $bwusage,
+                    'lastupdate' => 'now()'
                 ]);
 		} else {
             DB::table('tblhosting')
                 ->where('id', $data["id"])
                 ->update([
-                    ['bwusage' => $values['bwusage']],
-                    ['lastupdate' => 'now()']
+                    'bwusage' => $values['bwusage'],
+                    'lastupdate' => 'now()'
                 ]);
 		}
 	}
