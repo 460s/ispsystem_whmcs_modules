@@ -1,30 +1,37 @@
 <?php
-
+use WHMCS\Database\Capsule as DB;
 // Для работы с дополнениями нужно использовать хуки
 
 // Проверка - наш ли это аддон
 function hook_ispsystem_partners_check ($vars){
-    $result = select_query("ispsystem_noc_addon","id",array("addonid" => $vars["addonid"]));
-    return (mysql_num_rows($result) > 0) ? true : false;
+    $result = DB::table('ispsystem_noc_addon')->select('id')->where('addonid', $vars["addonid"])->first();
+    return $result ? true : false;
 }
 
 // Поиск данных от сервера обработки
 function hook_ispsystem_partners_find_server($addonid){
     // Найдем сервер обработки
-    $result = select_query("ispsystem_noc_addon","serverid",array("addonid" => $addonid));
-    $data = mysql_fetch_array($result);
-    if (!$data) return "error";
+    $result = DB::table('ispsystem_noc_addon')->select('serverid')->where('addonid', $addonid)->first();
+    if (!$result) return "error";
+
     // Найдем адрес, имя\пароль
-    $result = select_query("tblservers","id,hostname,username,password",array("id" => $data[0]));
-    $data = mysql_fetch_array($result);
+    $result = DB::table('tblservers')->select('id', 'hostname', 'username', 'password')->where('id', $result->serverid)->first();
+    $data = (array)$result;
     if (!$data) return "error";
+
     // Чтобы расшифровать пароль, нужно найти активного админа
-    $result = mysql_query("SELECT a.username FROM tbladmins a LEFT JOIN tbladminperms p ON a.roleid=p.roleid WHERE a.disabled=0 and p.permid=81");
-    $admin_data = mysql_fetch_array($result);
+    $admin_data = DB::table('tbladmins')
+            ->leftJoin('tbladminperms', 'tbladmins.roleid', '=', 'tbladminperms.roleid')
+            ->where([
+                ['tbladmins.disabled', '=', 0],
+                ['tbladminperms.permid', '=', 81],
+            ])
+            ->select('tbladmins.username')
+            ->first();
     if (!$admin_data) return "error";
 
     // Расшифруем пароль
-    $password_req = localAPI('decryptpassword',array("password2" => $data['password']),$admin_data['username']);
+    $password_req = localAPI('decryptpassword',array("password2" => $data['password']),$admin_data->username);
     $password = $password_req['password'];
 
     return array("serverhostname" => $data['hostname']
@@ -49,26 +56,24 @@ function hook_ispsystem_partners_fill_params($vars){
     $params['serverid'] = $server["serverid"];
 
     // Id тарифа в ISPsystem
-    $result = select_query("ispsystem_noc_addon","priceid,priceaddon",array("addonid" => $vars['addonid']));
-    $data = mysql_fetch_array($result);
-    if (!$data) {
+    $result = DB::table('ispsystem_noc_addon')->select('priceid', 'priceaddon')->where('addonid', $vars['addonid'])->first();
+    if (!$result) {
         logModuleCall("hook_ispsystem_partners", "price_find", "Can't find addon price");
         return "error";
     }
-    $params['configoption1'] = $data['priceid'];
-    if (!is_null($data['priceaddon']) ) {
-        $params['configoption2'] = $data['priceaddon'];
+    $params['configoption1'] = $result->priceid;
+    if (!is_null($result->priceaddon) ) {
+        $params['configoption2'] = $result->priceaddon;
         $params['configoptions'] = array('Additional nodes in cluster' => 0);
     }
 
     // Имя и IP лицензии
-    $result = select_query("tblhosting","domain,dedicatedip",array("id" => $vars['serviceid']));
-    $data = mysql_fetch_array($result);
-    if (!$data) {
+    $result = DB::table('tblhosting')->select('domain', 'dedicatedip')->where('id', $vars['serviceid'])->first();
+    if (!$result) {
         logModuleCall("hook_ispsystem_partners", "hosting_find", "Can't find tblhosting domain and ip");
         return "error";
     }
-    $params['customfields'] = array('ip' => $data["dedicatedip"], 'name' => $data["domain"]."_addon");
+    $params['customfields'] = array('ip' => $result->dedicatedip, 'name' => $result->domain."_addon");
     $params['serviceid'] = $vars['id'];
 
     // Установим флаг, что это аддон
@@ -80,10 +85,7 @@ function hook_ispsystem_partners_fill_params($vars){
 // Переведем addon в Pending, чтобы хостер знал, что что-то не так
 function hook_ispsystem_partners_error($id,$message){
     logModuleCall("hook_ispsystem_partners", $message['action'], $message['error']);
-    update_query("tblhostingaddons"
-        , array( "status" => 'Pending' )
-        , array( "id" => $id )
-    );
+    DB::table('tblhostingaddons')->where('id', $id)->update(['status' => 'Pending']);
 }
 
 // Хелпер для запуска операции
@@ -107,9 +109,14 @@ function hook_ispsystem_partners_action($vars,$action){
             case 'unsuspend' :  $answer = billmanager_noc_UnSuspendAccount($params); break;
             case 'terminate' : $answer = billmanager_noc_TerminateAccount($params); break;
             case 'admin' : // Если админ перевел в Active
-                $result = select_query('ispsystem_noc','licenseid',array('serviceid' => $vars['id'], 'licensetype' => 1));
-                $data = mysql_fetch_assoc($result);
-                if ($data) { // Если есть лицензия - включить
+                $result = DB::table('ispsystem_noc')
+                    ->select('licenseid')
+                    ->where([
+                        ['serviceid', '=', $vars['id']],
+                        ['licensetype', '=', '1'],
+                    ])
+                    ->first();
+                if ($result) { // Если есть лицензия - включить
                     $answer = billmanager_noc_UnSuspendAccount($params);
                 }else{ // Если нет лицензии - заказать
                     $answer = billmanager_noc_CreateAccount($params);
@@ -144,7 +151,7 @@ add_hook('AddonTerminated',1,function($vars){ hook_ispsystem_partners_action($va
 // продлить привязанные лицензии
 // удалить из базы не привязанные лицензии
 add_hook('PreCronJob',1,function(){
-    $result = select_query("ispsystem_noc","id,licenseid,serviceid,serverid,(duedate - interval 1 day) duedate, (duedate + interval 1 month) terminatedate");
+    $result = DB::table('ispsystem_noc')->select(DB::raw('id, licenseid, serviceid, serverid, (duedate - interval 1 day) duedate, (duedate + interval 1 month) terminatedate'))->get();
     $count_prolonged = 0;
     $count_deleted = 0;
     $timezone = date_default_timezone_get(); // Сохраним текущую временную зону
@@ -152,8 +159,14 @@ add_hook('PreCronJob',1,function(){
     $today = date("Y-m-d");
 
     // Чтобы расшифровать пароль, нужно найти активного админа (81 - разрешение функции API)
-    $admin_result = mysql_query("SELECT a.username FROM tbladmins a LEFT JOIN tbladminperms p ON a.roleid=p.roleid WHERE a.disabled=0 and p.permid=81");
-    $admin_data = mysql_fetch_array($admin_result);
+    $admin_data = DB::table('tbladmins')
+            ->leftJoin('tbladminperms', 'tbladmins.roleid', '=', 'tbladminperms.roleid')
+            ->where([
+                ['tbladmins.disabled', '=', 0],
+                ['tbladminperms.permid', '=', 81],
+            ])
+            ->select('tbladmins.username')
+            ->first();
     if (!$admin_data) {
         logModuleCall("hook_ispsystem_partners", "find_server", "Can't find admin with API access");
         return false;
@@ -162,28 +175,27 @@ add_hook('PreCronJob',1,function(){
     $mypath = dirname(__FILE__);
     require substr($mypath,0,strpos($mypath,'addons/ispsystem_partners'))."servers/billmanager_noc/billmanager_noc.php";
 
-    while ($data = mysql_fetch_assoc($result)) {
+    foreach ($result as $data) {
         if (!is_null($data['serviceid'])){
             // Если лицензия привязана
             if ($today >= $data['duedate']) {
                 // Продлеваем лицензию за день до окончания срока
 
                 // Найдем адрес, имя\пароль
-                $server_result = select_query("tblservers","id,hostname,username,password",array("id" => $data['serverid']));
-                $server_data = mysql_fetch_array($server_result);
+                $server_data = DB::table('tblservers')->select('id', 'hostname', 'username', 'password')->where('id', $data['serverid'])->first();
                 if (!$server_data) {
                     logModuleCall("hook_ispsystem_partners", "find_server", "Can't find ISPsystem server");
                     continue;
                 }
 
                 // Расшифруем пароль
-                $password_req = localAPI('decryptpassword',array("password2" => $server_data['password']),$admin_data['username']);
+                $password_req = localAPI('decryptpassword',array("password2" => $server_data->password),$admin_data->username);
 
                 $params = array();
-                $params['serverhostname'] = $server_data['hostname'];
-                $params['serverusername'] = $server_data["username"];
+                $params['serverhostname'] = $server_data->hostname;
+                $params['serverusername'] = $server_data->username;
                 $params['serverpassword'] = $password_req['password'];
-                $params['serverid'] = $server_data['id'];
+                $params['serverid'] = $server_data->id;
 
                 $answer = billmanager_noc_LicenseProlong($params,$data['licenseid']);
                 if ($answer["answer"] != 'success') {
@@ -192,10 +204,7 @@ add_hook('PreCronJob',1,function(){
                 }
 
                 // Обновим информацию в базе
-                update_query("ispsystem_noc"
-                    , array( "duedate" => $answer["duedate"] )
-                    , array( "id" => $data["id"] )
-                );
+                DB::table('ispsystem_noc')->where('id', $data["id"])->update(['duedate' => $answer["duedate"]]);
                 $count_prolonged++;
             }
         } else {
@@ -203,7 +212,7 @@ add_hook('PreCronJob',1,function(){
             if ($today >= $data['terminatedate']) {
                 // Если сегодня лицензия удалится
                 // Уберем запись из базы
-                mysql_query("DELETE FROM ispsystem_noc WHERE id=".$data['id']);
+                DB::table('ispsystem_noc')->where('id', '=', $data['id'])->delete();
                 logModuleCall("hook_ispsystem_partners", "delete", "Deleting license from database: ".$data['licenseid']);
                 $count_deleted++;
             }
