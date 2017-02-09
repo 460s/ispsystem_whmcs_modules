@@ -17,32 +17,31 @@ function billmanager_noc_find_error($xml) {
 
 // Найти внешний id для дицензии
 function billmanager_noc_get_external_id($params) {
-	$result = select_query("ispsystem_noc","licenseid",
-		array("serviceid"=>$params["serviceid"]
-			, "licensetype" => (array_key_exists("addon_change", $params)) ? 1 : 0
-		)
-	);
-
-	if ($result) {
-		$data = mysql_fetch_assoc($result);
-		if ($data) {
-			return $data["licenseid"];
-		} else {
-			return "";
-		}
-	} else {
-		return "";
-	}
+	$result = DB::table('ispsystem_noc')
+		->select('licenseid')
+		->where([
+		    ['serviceid', '=', $params["serviceid"]],
+		    ['licensetype', '=', (array_key_exists("addon_change", $params)) ? 1 : 0],
+		])
+		->first();
+	return $result ? $result->licenseid : "";
 }
 
-// Тут сложно. Кастомфилды никак не привязаны к услуге напрямую. Менять можно только по порядковому номеру
+// Кастомфилды никак не привязаны к услуге напрямую. Менять можно только по порядковому номеру
 function billmanager_noc_save_customfield($params,$num,$val){
 	// Найдем в какое поле его записать
-	$custom_field_id_query = "SELECT fieldid FROM tblcustomfieldsvalues WHERE relid=".$params["serviceid"];
-	$custom_field_id_data = mysql_query($custom_field_id_query);
-	if ($num > 1) mysql_data_seek($custom_field_id_data,$num-1);
-	$custom_field_id = mysql_fetch_array($custom_field_id_data);
-	update_query("tblcustomfieldsvalues",array(	"value" => $val), array("fieldid" => $custom_field_id[0], "relid" => $params["serviceid"]));
+	$custom_field = DB::table('tblcustomfieldsvalues')
+		->select('fieldid')
+		->where('relid', $params["serviceid"])
+		->first();
+
+	//пишем
+	DB::table('ispsystem_noc')
+		->where([
+			['fieldid', '=', $custom_field->fieldid],
+			['relid', '=', $params["serviceid"]],
+		])
+		->update(['value' => $val]);
 }
 
 // Запрос и сохранение ключа лицензии
@@ -149,7 +148,7 @@ function billmanager_noc_LicenseOrder($params){
 	if (array_key_exists("addon_change", $params)) $newparams['licensetype'] = 1;
 
 	// Сохраним
-	insert_query("ispsystem_noc",$newparams);
+	DB::table('ispsystem_noc')->insert($newparams);
 
 	return "success";
 }
@@ -233,17 +232,20 @@ function billmanager_noc_CreateAccount($params){
 	$answer = 'success';
 
 	//configoption1 - id тарифа в ISPsystem
-	$query = "SELECT id,licenseid,duedate FROM ispsystem_noc WHERE serviceid is null AND servicepackage=".$params["configoption1"];
+	$arr_param = [
+		['serviceid', NULL],
+		['servicepackage', '=', $params["configoption1"]],
+	];
 
 	//configoption2 - id дополнения в ISPsystem
-	if ($params["configoption2"] != '') $query .= " AND serviceaddon=".($params["configoptions"]["Additional nodes in cluster"]);
+	if ($params["configoption2"] != '')
+		array_push($arr_param , ['serviceaddon', '=', $params["configoptions"]["Additional nodes in cluster"]]);
 
-	// Есть ли свободная лицензия?
-	$result = mysql_query($query);
+	$result = DB::table('ispsystem_noc')->select('id', 'licenseid', 'duedate')->where($arr_param)->get();
 
-	if (mysql_num_rows($result) > 0) { // Есть свободная
+	if ($result) { // Есть свободная
 		$use_old_license = false;
-		while ($data = mysql_fetch_assoc($result)){
+		foreach ($result as $data) {
 			// Запросим измененение параметров в биллинге ISPsystem
 			$answer = billmanager_noc_LicenseEdit($params,$data['licenseid'],$params['serviceid']);
 			if ($answer == 'success') { //Если дали поменять лицензию
@@ -276,13 +278,13 @@ function billmanager_noc_CreateAccount($params){
 			}
 
 			if ($use_old_license){
-				update_query("ispsystem_noc"
-					, array("licensetype" => (array_key_exists("addon_change", $params)) ? 1 : 0
-						, "serviceid" => $params["serviceid"]
-						, "duedate" => $duedate
-					)
-					, array("id" => $data["id"])
-				);
+				DB::table('ispsystem_noc')
+					->where('id', $data["id"])
+					->update([
+						'licensetype' => (array_key_exists("addon_change", $params)) ? 1 : 0,
+						'serviceid' => $params["serviceid"],
+						'duedate' => $duedate
+					]);
 				break; // Привязали лицензию. Заканчиваем
 			}
 		}
@@ -315,23 +317,20 @@ function billmanager_noc_UnSuspendAccount($params){
 	$license_id = billmanager_noc_get_external_id($params);
 
 	// Проверим expiredate
-	$result = select_query("ispsystem_noc","duedate",array("licenseid" => $license_id));
-	$data = mysql_fetch_assoc($result);
+	$result = DB::table('ispsystem_noc')->select('duedate')->where('licenseid', $license_id)->first();
 
 	$timezone = date_default_timezone_get(); // Сохраним текущую временную зону
 	date_default_timezone_set("UTC"); // Сдвинем в UTC
 	$today = date("Y-m-d");
-	$duedate = $data['duedate'];
+	$duedate = $result->duedate;
 	if ($today >= $duedate) { // Если текущая дата больше или равна expiredate
 		date_default_timezone_set($timezone); // Вернем обратно как было
 		$prolong_answer = billmanager_noc_LicenseProlong($params,$license_id);
 		if ($prolong_answer["answer"] != 'success') return $prolong_answer["answer"];
 
 		// Обновим дату в базе
-		update_query("ispsystem_noc"
-			, array("duedate" => $prolong_answer['duedate'])
-			, array("licenseid" => $license_id)
-		);
+		DB::table('ispsystem_noc')->where('licenseid', $license_id)->update(['duedate' => $prolong_answer['duedate']]);
+
 		// Запросим ключ лицензии
 		$answer = billmanager_noc_get_param($params,$license_id);
 		if ($answer['answer'] != 'success') return $answer['answer'];
@@ -371,10 +370,13 @@ function billmanager_noc_TerminateAccount($params){
 	if ($answer != 'success') return $answer;
 
 	// Удалим привязку из базы
-	update_query("ispsystem_noc"
-		, array("serviceid" => "NULL")
-		, array("serviceid" => $params["serviceid"], "licensetype" => (array_key_exists("addon_change", $params)) ? 1 : 0)
-	);
+	DB::table('ispsystem_noc')
+	->where([
+	    ['serviceid', '=', $params["serviceid"]],
+	    ['licensetype', '=', (array_key_exists("addon_change", $params)) ? 1 : 0]
+	])
+	->update(['serviceid' => 'NULL']);
+
 
 	return 'success';
 }
