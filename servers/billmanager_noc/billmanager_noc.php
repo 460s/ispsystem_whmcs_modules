@@ -4,6 +4,8 @@ if (!defined("WHMCS")) {
 	die("This file cannot be accessed directly");
 }
 
+use WHMCS\Database\Capsule as DB;
+
 // Поиск и формирование ошибки
 function billmanager_noc_find_error($xml) {
 	$error = "";
@@ -33,10 +35,11 @@ function billmanager_noc_save_customfield($params,$num,$val){
 	$custom_field = DB::table('tblcustomfieldsvalues')
 		->select('fieldid')
 		->where('relid', $params["serviceid"])
+		->skip($num-1)
 		->first();
 
 	//пишем
-	DB::table('ispsystem_noc')
+	DB::table('tblcustomfieldsvalues')
 		->where([
 			['fieldid', '=', $custom_field->fieldid],
 			['relid', '=', $params["serviceid"]],

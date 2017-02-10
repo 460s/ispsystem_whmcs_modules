@@ -36,7 +36,7 @@ function dci_get_external_id($params) {
 }
 
 function dci_save_external_id($params, $external_id) {
-	$vmid = vm_get_external_id($params);
+	$vmid = dci_get_external_id($params);
 
 	if ($vmid) {
 		DB::table('mod_ispsystem')->where('serviceid', $params["serviceid"])->update(['external_id' => $external_id]);
