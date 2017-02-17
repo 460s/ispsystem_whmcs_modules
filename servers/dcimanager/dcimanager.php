@@ -240,7 +240,7 @@ function dcimanager_CreateAccount($params) {
 	$admin_id = $find_user[0]->id;
 
 	$server_list = dci_api_request($server_ip, $server_username, $server_password, "server", array());
-	$find_server = $server_list->xpath("/doc/elem[(owner='' or not(owner)) and chassis_templ='".$params["configoption1"]."' and hostname='free.ds' and not(blocked) and not(hwproblem) and not(diag_in_progress)]");
+	$find_server = $server_list->xpath("/doc/elem[(owner='' or not(owner)) and (chassis_templ='".$params["configoption1"]."' or type='".$params["configoption1"]."') and hostname='free.ds' and not(blocked) and not(hwproblem) and not(diag_in_progress)]");
 	$server_id = $find_server[0]->id;
 
 	if ($server_id == "")
@@ -627,8 +627,7 @@ function dcimanager_networkon($params) {
 	return "success";
 }
 
-function dcimanager_ServiceSingleSignOn(array $params)
-{
+function dcimanager_ServiceSingleSignOn(array $params){
 	global $op;
 	$op = "ServiceSingleSignOn";
 
@@ -661,8 +660,7 @@ function dcimanager_ServiceSingleSignOn(array $params)
 	}
 }
 
-function dcimanager_AdminSingleSignOn(array $params)
-{
+function dcimanager_AdminSingleSignOn(array $params){
 	global $op;
 	$op = "AdminSingleSignOn";
 
