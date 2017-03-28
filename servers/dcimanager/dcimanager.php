@@ -215,10 +215,19 @@ function dcimanager_CreateAccount($params) {
 	$find_user = $user_list->xpath("/doc/elem[level='16' and name='".$service_username."']");
 	$user_id = $find_user[0]->id;
 
+    //Генерируем пароль пользователя, получаем  юзера с административными привелегиями,
+    //Шифруем пароль, пишем его в базу
 	$password = dcimanager_generate_random_string();
-
-	$pwd_results = localAPI("encryptpassword", array("password2" => $password), "admin");
-
+    $admin_data = DB::table('tbladmins')
+            ->leftJoin('tbladminperms', 'tbladmins.roleid', '=', 'tbladminperms.roleid')
+            ->where([
+                ['tbladmins.disabled', '=', 0],
+                ['tbladminperms.permid', '=', 81],
+            ])
+            ->select('tbladmins.username')
+            ->first();
+    if (!$admin_data) return "Admin user not found!";
+	$pwd_results = localAPI("encryptpassword", array("password2" => $password), $admin_data->username);
 	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['password' => $pwd_results["password"]]);
 
 	if ($user_id == "") {
@@ -450,8 +459,8 @@ function dcimanager_TerminateAccount($params) {
 		return "Can not turn off";
 
 	$server_ip = $params["serverip"];
-        $server_username = $params["serverusername"];
-        $server_password = $params["serverpassword"];
+    $server_username = $params["serverusername"];
+    $server_password = $params["serverpassword"];
 
 	$server_list = dci_api_request($server_ip, $server_username, $server_password, "server", array());
 	$main_ip_x = $server_list->xpath("/doc/elem[id='".$id."']");
@@ -526,7 +535,7 @@ function dcimanager_reinstall($params) {
 		        $os = ($params["configoptions"]["ostemplate"]);
 		}
 
-		    $server_ip = $params["serverip"];
+	    $server_ip = $params["serverip"];
 	    $server_username = $params["serverusername"];
 	    $server_password = $params["serverpassword"];
 
