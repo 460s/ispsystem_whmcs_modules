@@ -265,12 +265,12 @@ function vemanager_CreateAccount($params) {
 
 	$ip_list = "";
 	while ($ip_count > 0) {
-		$new_ip_param = array(
-					"plid" => $container_id,
-					"domain" => $params["domain"],
-					"sok" => "ok",
-					"family" => "ipv4",
-					);
+        $new_ip_param = array(
+            "plid" => $container_id,
+            "domain" => $params["domain"],
+            "sok" => "ok",
+            "family" => "ipv4",
+        );
 
 		$ip_add = ve_api_request($server_ip, $server_username, $server_password, "iplist.edit", $new_ip_param);
 		$ip_list .= $ip_add->ip."\n";
@@ -278,12 +278,12 @@ function vemanager_CreateAccount($params) {
 	}
 
 	while ($ipv6_count > 0) {
-                $new_ip_param = array(
-                                        "plid" => $container_id,
-                                        "domain" => $params["domain"],
-                                        "sok" => "ok",
-                                        "family" => "ipv6",
-                                        );
+        $new_ip_param = array(
+            "plid" => $container_id,
+            "domain" => $params["domain"],
+            "sok" => "ok",
+            "family" => "ipv6",
+        );
 
 		$ip_add = ve_api_request($server_ip, $server_username, $server_password, "iplist.edit", $new_ip_param);
 		$ip_list .= $ip_add->ip."\n";
@@ -345,10 +345,12 @@ function vemanager_ChangePassword($params) {
 	if ($id == "")
 		return "Unknown container!";
 
-	$change_password = ve_api_request($server_ip, $server_username, $server_password, "vm.edit", array("elid" => $id,
-													"password" => $params["password"],
-                                        								"confirm" => $params["password"],
-													"sok" => "ok"));
+	$change_password = ve_api_request($server_ip, $server_username, $server_password, "vm.edit", array(
+        "elid" => $id,
+        "password" => $params["password"],
+        "confirm" => $params["password"],
+        "sok" => "ok"
+    ));
 	$error = ve_find_error($change_password);
         if ($error != "") {
                 return $error;
@@ -378,36 +380,36 @@ function vemanager_ChangePackage($params) {
 
 	$preset = ve_api_request($server_ip, $server_username, $server_password, "preset.edit", array("elid" => $preset_id));
 	$container_change_param = array (
-					"elid" => $id,
-                                        "mem" => $preset->mem,
-                                        "cpu" => $preset->cpu,
-                                        "cpufreq" => $preset->cpufreq,
-                                        "hdd" => $preset->hdd,
-                                        "numproc" => $preset->numproc,
-                                        "numfile" => $preset->numfile,
-                                        "sok" => "ok",
-                                        );
+        "elid" => $id,
+        "mem" => $preset->mem,
+        "cpu" => $preset->cpu,
+        "cpufreq" => $preset->cpufreq,
+        "hdd" => $preset->hdd,
+        "numproc" => $preset->numproc,
+        "numfile" => $preset->numfile,
+        "sok" => "ok",
+        );
 
 	if (array_key_exists("configoption5", $params) && $params["configoption5"] != "")
 		$container_change_param["mem"] = $params["configoption5"];
 
-        if (array_key_exists("configoption6", $params) && $params["configoption6"] != "")
-                $container_change_param["cpu"] = $params["configoption6"];
+    if (array_key_exists("configoption6", $params) && $params["configoption6"] != "")
+            $container_change_param["cpu"] = $params["configoption6"];
 
-        if (array_key_exists("configoption7", $params) && $params["configoption7"] != "")
-                $container_change_param["cpufreq"] = $params["configoption7"];
+    if (array_key_exists("configoption7", $params) && $params["configoption7"] != "")
+            $container_change_param["cpufreq"] = $params["configoption7"];
 
-        if (array_key_exists("configoption4", $params) && $params["configoption4"] != "")
-                $container_change_param["hdd"] = $params["configoption4"];
+    if (array_key_exists("configoption4", $params) && $params["configoption4"] != "")
+            $container_change_param["hdd"] = $params["configoption4"];
 
-        if (array_key_exists("configoption8", $params) && $params["configoption8"] != "")
-                $container_change_param["numproc"] = $params["configoption8"];
+    if (array_key_exists("configoption8", $params) && $params["configoption8"] != "")
+            $container_change_param["numproc"] = $params["configoption8"];
 
-        if (array_key_exists("configoption9", $params) && $params["configoption9"] != "")
-                $container_change_param["numfile"] = $params["configoption9"];
+    if (array_key_exists("configoption9", $params) && $params["configoption9"] != "")
+            $container_change_param["numfile"] = $params["configoption9"];
 
-        if (array_key_exists("configoption9", $params) && $params["configoption9"] != "")
-                $container_change_param["numfile"] = $params["configoption9"];
+    if (array_key_exists("configoption9", $params) && $params["configoption9"] != "")
+            $container_change_param["numfile"] = $params["configoption9"];
 
 	$change_package = ve_api_request($server_ip, $server_username, $server_password, "vm.edit", $container_change_param);
         $error = ve_find_error($change_package);
