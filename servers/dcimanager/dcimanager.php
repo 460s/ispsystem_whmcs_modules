@@ -9,18 +9,24 @@ function dcimanager_MetaData(){
 }
 
 function dcimanager_ConfigOptions() {
-	return array(
-		"package" => 	array(
-					"FriendlyName" => "Package Name",
-					"Type" => "text",
-					"Size" => "32",
-				),
-		"os" =>		array(
-					"FriendlyName" => "Operation system",
-					"Type" => "text",
-					"Size" => "64",
-				),
-	);
+	return [
+            "package" => [
+                "FriendlyName" => "Package Name",
+                    "Type" => "text",
+                    "Size" => "32",
+                ],
+		"os" => [
+                    "FriendlyName" => "Operation system",
+                    "Type" => "text",
+                    "Size" => "64",
+                ],
+                "recipe" => [
+                    "FriendlyName" => "Recipe Name",
+                    "Type" => "text",
+                    "Size" => "64",
+                    "Default" => "null",
+                ],
+        ];
 }
 
 function dci_get_external_id($params) {
@@ -209,16 +215,18 @@ function dcimanager_CreateAccount($params) {
 		return "No server!";
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
+        //Если услуга не новая, задаем дефолтное значение рецепта сами
+        $params["configoption3"] === "" ? $recipe = "null" : $recipe = $params["configoption3"];
 
 	$service_username = $params["username"];
 	$user_list = dci_api_request($server_ip, $server_username, $server_password, "user", array());
 	$find_user = $user_list->xpath("/doc/elem[level='16' and name='".$service_username."']");
 	$user_id = $find_user[0]->id;
 
-    //Генерируем пароль пользователя, получаем  юзера с административными привелегиями,
-    //Шифруем пароль, пишем его в базу
+        //Генерируем пароль пользователя, получаем  юзера с административными привелегиями,
+        //Шифруем пароль, пишем его в базу
 	$password = dcimanager_generate_random_string();
-    $admin_data = DB::table('tbladmins')
+        $admin_data = DB::table('tbladmins')
             ->leftJoin('tbladminperms', 'tbladmins.roleid', '=', 'tbladminperms.roleid')
             ->where([
                 ['tbladmins.disabled', '=', 0],
@@ -226,7 +234,7 @@ function dcimanager_CreateAccount($params) {
             ])
             ->select('tbladmins.username')
             ->first();
-    if (!$admin_data) return "Admin user not found!";
+        if (!$admin_data) return "Admin user not found!";        
 	$pwd_results = localAPI("encryptpassword", array("password2" => $password), $admin_data->username);
 	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['password' => $pwd_results["password"]]);
 
@@ -316,7 +324,8 @@ function dcimanager_CreateAccount($params) {
 						"ostemplate" => $os,
 						"passwd" => $password,
 						"confirm" => $password,
-						"checkpasswd" => $password));
+						"checkpasswd" => $password,
+                                                "recipe" => $recipe));
 
 	$error = dci_find_error($dci_install);
 	if ($error != "") {

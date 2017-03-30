@@ -10,72 +10,78 @@ function vemanager_MetaData(){
 }
 
 function vemanager_ConfigOptions() {
-	return array(
-		"package" => array(
+    return [
+        "package" => [
             "FriendlyName" => "Package Name",
             "Type" => "text",
             "Size" => "25",
-				),
-		"os" =>	array(
+        ],
+        "os" => [
             "FriendlyName" => "Operation system",
             "Type" => "text",
             "Size" => "64",
-				),
-		"fstype" =>	array(
+        ],
+        "fstype" => [
             "FriendlyName" => "File system",
             "Type" => "dropdown",
             "Options" => "ploop,simfs",
             "Default" => "ploop",
-				),
-		"hdd" => array(
+        ],
+        "hdd" => [
             "FriendlyName" => "Disk quota",
             "Type" => "text",
             "Size" => "8",
             "Description" => "MiB",
-        ),
-		"mem" => array(
+        ],
+        "mem" => [
             "FriendlyName" => "Memory quota",
             "Type" => "text",
             "Size" => "8",
             "Description" => "MiB",
-				),
-		"cpu" => array(
+        ],
+        "cpu" => [
             "FriendlyName" => "Processors count",
             "Type" => "text",
             "Size" => "8",
             "Description" => "Unit",
-				),
-		"cpufreq" => array(
+        ],
+        "cpufreq" => [
             "FriendlyName" => "Processor frequency",
             "Type" => "text",
             "Size" => "8",
             "Description" => "MHz",
-				),
-		"numproc" => array(
+        ],
+        "numproc" => [
             "FriendlyName" => "Processes count",
             "Type" => "text",
             "Size" => "8",
             "Description" => "Unit",
-				),
-		"numfile" => array(
+        ],
+        "numfile" => [
             "FriendlyName" => "Files count",
             "Type" => "text",
             "Size" => "8",
             "Description" => "Unit",
-				),
-		"family" => array(
+        ],
+        "family" => [
             "FriendlyName" => "Main IP address type",
             "Type" => "dropdown",
             "Options" => "ipv4,ipv6",
             "Default" => "ipv4",
-				),
-		"sshkey" =>	array(
+        ],
+        "sshkey" => [
             "FriendlyName" => "SSH public key",
             "Type" => "textarea",
             "Rows" => "10",
             "Cols" => "30",
-				),
-	);
+        ],
+        "recipe" => [
+            "FriendlyName" => "Recipe Name",
+            "Type" => "text",
+            "Size" => "64",
+            "Default" => "null",
+        ],
+    ];
 }
 
 function vemanager_AdminServicesTabFields($params) {
@@ -149,9 +155,12 @@ function ve_find_error($xml) {
 
 
 function vemanager_CreateAccount($params) {
-	// Получить список пользователей
-	// Создать пользователя
-	// Создать контейнер
+	/*
+         *  Получить список пользователей
+	 * Создать пользователя
+	 * Создать контейнер         
+         */
+    
 	global $op;
 	$op = "create";
 
@@ -160,6 +169,8 @@ function vemanager_CreateAccount($params) {
 		return "No server!";
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
+        //Если услуга не новая, задаем дефолтное значение рецепта сами
+        $params["configoption12"] === "" ? $recipe = "null" : $recipe = $params["configoption12"];
 
 	$service_username = $params["username"];
 	$user_list = ve_api_request($server_ip, $server_username, $server_password, "user", array());
@@ -188,27 +199,28 @@ function vemanager_CreateAccount($params) {
 	if ($preset_id == "")
 		return "Can not find preset!";
 
-	$container_create_param = array (
-					"mem" => $params["configoption5"],
-					"cpu" => $params["configoption6"],
-					"cpufreq" => $params["configoption7"],
-					"hdd" => $params["configoption4"],
-					"numproc" => $params["configoption8"],
-					"numfile" => $params["configoption9"],
-					"fstype" => $params["configoption3"],
-					"ostemplate" => strtolower($params["configoption2"]),
-					"preset" => $preset_id,
-					"family" => $params["configoption10"],
-					"user" => $user_id,
-					"hostnode" => "auto",
-					"iptype" => "public",
-					"sok" => "ok",
-					"password" => $params["password"],
-					"confirm" => $params["password"],
-					"domain" => $params["domain"],
-					"name" => "cont".$params["serviceid"],
-					"sshpubkey" => $params["configoption11"],
-					);
+	$container_create_param = [
+            "mem" => $params["configoption5"],
+            "cpu" => $params["configoption6"],
+            "cpufreq" => $params["configoption7"],
+            "hdd" => $params["configoption4"],
+            "numproc" => $params["configoption8"],
+            "numfile" => $params["configoption9"],
+            "fstype" => $params["configoption3"],
+            "ostemplate" => strtolower($params["configoption2"]),
+            "preset" => $preset_id,
+            "family" => $params["configoption10"],
+            "user" => $user_id,
+            "hostnode" => "auto",
+            "iptype" => "public",
+            "sok" => "ok",
+            "password" => $params["password"],
+            "confirm" => $params["password"],
+            "domain" => $params["domain"],
+            "name" => "cont".$params["serviceid"],
+            "sshpubkey" => $params["configoption11"],
+            "recipe" => $recipe,
+	];
 
 	if (array_key_exists("os", $params["configoptions"])) {
 		$container_create_param["ostemplate"] = strtolower($params["configoptions"]["os"]);

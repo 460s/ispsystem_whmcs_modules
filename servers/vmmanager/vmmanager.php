@@ -9,59 +9,65 @@ function vmmanager_MetaData(){
 }
 
 function vmmanager_ConfigOptions() {
-	return array(
-		"package" => 	array(
-			"FriendlyName" => "Package Name",
-			"Type" => "text",
-			"Size" => "25",
-				),
-		"os" =>		array(
-			"FriendlyName" => "Operation system",
-			"Type" => "text",
-			"Size" => "64",
-				),
-		"hdd" =>        array(
-			"FriendlyName" => "Disk quota",
-			"Type" => "text",
-			"Size" => "8",
-			"Description" => "MiB",
-                                ),
-		"mem" => 	array(
-			"FriendlyName" => "Memory quota",
-			"Type" => "text",
-			"Size" => "8",
-			"Description" => "MiB",
-				),
-		"cpu" =>	array(
-			"FriendlyName" => "Processors count",
-			"Type" => "text",
-			"Size" => "8",
-			"Description" => "Unit",
-				),
-		"cpufreq" => 	array(
-			"FriendlyName" => "Processor frequency",
-			"Type" => "text",
-			"Size" => "8",
-			"Description" => "MHz",
-				),
-		"family" =>	array(
-			"FriendlyName" => "Main IP address type",
-			"Type" => "dropdown",
-			"Options" => "ipv4,ipv6",
-			"Default" => "ipv4",
-				),
-		"sshkey" =>	array(
-			"FriendlyName" => "SSH public key",
-			"Type" => "textarea",
-			"Rows" => "10",
-			"Cols" => "30",
-				),
-	);
+    return [
+        "package" => [
+            "FriendlyName" => "Package Name",
+            "Type" => "text",
+            "Size" => "25",
+        ],
+        "os" => [
+            "FriendlyName" => "Operation system",
+            "Type" => "text",
+            "Size" => "64",
+        ],
+        "hdd" => [
+            "FriendlyName" => "Disk quota",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "MiB",
+        ],
+        "mem" => [
+            "FriendlyName" => "Memory quota",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "MiB",
+        ],
+        "cpu" => [
+            "FriendlyName" => "Processors count",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "Unit",
+        ],
+        "cpufreq" => [
+            "FriendlyName" => "Processor frequency",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "MHz",
+        ],
+        "family" => [
+            "FriendlyName" => "Main IP address type",
+            "Type" => "dropdown",
+            "Options" => "ipv4,ipv6",
+            "Default" => "ipv4",
+        ],
+        "sshkey" => [
+            "FriendlyName" => "SSH public key",
+            "Type" => "textarea",
+            "Rows" => "10",
+            "Cols" => "30",
+        ],
+        "recipe" => [
+            "FriendlyName" => "Recipe Name",
+            "Type" => "text",
+            "Size" => "64",
+            "Default" => "null",
+        ],
+    ];
 }
 
 function vmmanager_AdminServicesTabFields($params) {
 	$value = vm_get_external_id($params);
-	return array("VMmanager ID" => "<input type='text' name='vmmanager_id' size='16' value='".$value."' />");
+	return ["VMmanager ID" => "<input type='text' name='vmmanager_id' size='16' value='".$value."' />"];
 }
 
 function vm_get_external_id($params) {
@@ -129,17 +135,21 @@ function vm_find_error($xml) {
 
 
 function vmmanager_CreateAccount($params) {
-	// Получить список пользователей
-	// Создать пользователя
-	// Создать контейнер
+        /* 
+         * Получить список пользователей
+	 * Создать пользователя
+	 * Создать контейнер
+         */
 	global $op;
 	$op = "create";
 
 	$server_ip = $params["serverip"];
 	if ($server_ip == "")
-		return "No server!";
+                return "No server!";
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
+        //Если услуга не новая, задаем дефолтное значение рецепта сами
+        $params["configoption9"] === "" ? $recipe = "null" : $recipe = $params["configoption9"];
 
 	$service_username = $params["username"];
 	$user_list = vm_api_request($server_ip, $server_username, $server_password, "user", array());
@@ -147,12 +157,12 @@ function vmmanager_CreateAccount($params) {
 	$user_id = $find_user[0]->id;
 
 	if ($user_id == "") {
-		$user_create_param = array (
-						"sok" => "ok",
-						"level" => "16",
-						"name" => $service_username,
-						"passwd" => $params["password"],
-						);
+		$user_create_param = [
+                    "sok" => "ok",
+                    "level" => "16",
+                    "name" => $service_username,
+                    "passwd" => $params["password"],
+                ];
 
 		$user_create = vm_api_request($server_ip, $server_username, $server_password, "user.edit", $user_create_param);
 		$user_id = $user_create->id;
@@ -168,24 +178,25 @@ function vmmanager_CreateAccount($params) {
 	if ($preset_id == "")
 		return "Can not find preset!";
 
-	$vm_create_param = array (
-					"mem" => $params["configoption4"],
-					"vcpu" => $params["configoption5"],
-					"cputune" => $params["configoption6"],
-					"vsize" => $params["configoption3"],
-					"vmi" => ($params["configoption2"]),
-					"preset" => $preset_id,
-					"family" => $params["configoption7"],
-					"user" => $user_id,
-					"hostnode" => "auto",
-					"iptype" => "public",
-					"sok" => "ok",
-					"password" => $params["password"],
-					"confirm" => $params["password"],
-					"domain" => $params["domain"],
-					"name" => "cont".$params["serviceid"],
-					"sshpubkey" => $params["configoption8"],
-					);
+	$vm_create_param = [
+            "mem" => $params["configoption4"],
+            "vcpu" => $params["configoption5"],
+            "cputune" => $params["configoption6"],
+            "vsize" => $params["configoption3"],
+            "vmi" => ($params["configoption2"]),
+            "preset" => $preset_id,
+            "family" => $params["configoption7"],
+            "user" => $user_id,
+            "hostnode" => "auto",
+            "iptype" => "public",
+            "sok" => "ok",
+            "password" => $params["password"],
+            "confirm" => $params["password"],
+            "domain" => $params["domain"],
+            "name" => "cont".$params["serviceid"],
+            "sshpubkey" => $params["configoption8"],
+            "recipe" => $reсipe,
+        ];
 
 	if (array_key_exists("os", $params["configoptions"])) {
 		$vm_create_param["vmi"] = ($params["configoptions"]["os"]);
