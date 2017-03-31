@@ -339,7 +339,8 @@ function dcimanager_CreateAccount($params) {
 
 	$dci_ip = "0.0.0.0";
 	$wait_time = 0;
-
+        
+        //Чтобы не дожидаться установки убераем not(install_in_progress)  
 	while (1) {
 		$dci_list = dci_api_request($server_ip, $server_username, $server_password, "server", array());
 		$find_dci = $dci_list->xpath("/doc/elem[id='".$server_id."' and not(install_in_progress) and not(operation_failed)]");
@@ -464,12 +465,15 @@ function dcimanager_TerminateAccount($params) {
                 return "Unknown server!";
         }
 
+	dci_process_operation("server.enable", $params);
+	sleep(5); 
+        
 	if (dci_find_error(dci_process_operation("server.poweroff", $params)) != "")
 		return "Can not turn off";
 
 	$server_ip = $params["serverip"];
-    $server_username = $params["serverusername"];
-    $server_password = $params["serverpassword"];
+        $server_username = $params["serverusername"];
+        $server_password = $params["serverpassword"];
 
 	$server_list = dci_api_request($server_ip, $server_username, $server_password, "server", array());
 	$main_ip_x = $server_list->xpath("/doc/elem[id='".$id."']");
