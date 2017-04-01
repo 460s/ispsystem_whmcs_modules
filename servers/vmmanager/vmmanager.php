@@ -195,7 +195,7 @@ function vmmanager_CreateAccount($params) {
             "domain" => $params["domain"],
             "name" => "cont".$params["serviceid"],
             "sshpubkey" => $params["configoption8"],
-            "recipe" => $reсipe,
+            "recipe" => $recipe,
         ];
 
 	if (array_key_exists("os", $params["configoptions"])) {
