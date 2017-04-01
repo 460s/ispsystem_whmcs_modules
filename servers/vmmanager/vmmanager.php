@@ -472,7 +472,7 @@ function vmmanager_UsageUpdate($params) {
 		DB::table('tblhosting')
             ->where('id', $data["id"])
             ->update([
-                'bwusage' => $values['bwusage'],
+                'bwusage' => $bwusage,
                 'lastupdate' => 'now()'
             ]);
 	}
