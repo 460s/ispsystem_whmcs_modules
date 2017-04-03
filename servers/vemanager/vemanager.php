@@ -507,7 +507,7 @@ function vemanager_UsageUpdate($params) {
 		logActivity("VEmanager get stats error: ".mysql_error());
 
 	foreach ($result as $data) {
-		$external_id = $data["external_id"];
+		$external_id = $data->external_id;
 
 		if ($external_id == "")
 			continue;
@@ -545,7 +545,7 @@ function vemanager_UsageUpdate($params) {
 
 		if ($disklimit > 0) {
             DB::table('tblhosting')
-                ->where('id', $data["id"])
+                ->where('id', $data->id)
                 ->update([
                     'diskusage' => $diskusage,
                     'disklimit' => $disklimit,
@@ -554,7 +554,7 @@ function vemanager_UsageUpdate($params) {
                 ]);
 		} else {
             DB::table('tblhosting')
-                ->where('id', $data["id"])
+                ->where('id', $data->id)
                 ->update([
                     'bwusage' => $values['bwusage'],
                     'lastupdate' => 'now()'

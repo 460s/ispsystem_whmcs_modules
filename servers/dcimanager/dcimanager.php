@@ -745,7 +745,7 @@ function dcimanager_UsageUpdate($params) {
 														 "period" => "currentmonth"));
 
 		foreach ($result as $data) {
-			$external_id = $data["external_id"];
+			$external_id = $data->external_id;
 
 			if ($external_id == "")
 				continue;
@@ -766,7 +766,7 @@ function dcimanager_UsageUpdate($params) {
 			}
 
 			DB::table('tblhosting')
-			   ->where('id', $data["id"])
+			   ->where('id', $data->id)
 			   ->update([
 				   'bwusage' => $bwusage,
 				   'lastupdate' => 'now()'

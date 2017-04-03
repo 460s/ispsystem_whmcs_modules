@@ -445,7 +445,7 @@ function vmmanager_UsageUpdate($params) {
 		logActivity("VMmanager get stats error: ".mysql_error());
 
 	foreach ($result as $data) {
-		$external_id = $data["external_id"];
+		$external_id = $data->external_id;
 
 		if ($external_id == "")
 			continue;
@@ -470,7 +470,7 @@ function vmmanager_UsageUpdate($params) {
                 }
 
 		DB::table('tblhosting')
-            ->where('id', $data["id"])
+            ->where('id', $data->id)
             ->update([
                 'bwusage' => $bwusage,
                 'lastupdate' => 'now()'
