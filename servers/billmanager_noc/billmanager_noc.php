@@ -250,7 +250,7 @@ function billmanager_noc_CreateAccount($params){
 		$use_old_license = false;
 		foreach ($result as $data) {
 			// Запросим измененение параметров в биллинге ISPsystem
-			$answer = billmanager_noc_LicenseEdit($params,$data['licenseid'],$params['serviceid']);
+			$answer = billmanager_noc_LicenseEdit($params,$data->licenseid,$params['serviceid']);
 			if ($answer == 'success') { //Если дали поменять лицензию
 				$use_old_license = true;
 			} else {
@@ -259,11 +259,11 @@ function billmanager_noc_CreateAccount($params){
 			$timezone = date_default_timezone_get(); // Сохраним текущую временную зону
 			date_default_timezone_set("UTC"); // Сдвинем в UTC
 			$today = date("Y-m-d");
-			$duedate = $data['duedate'];
+			$duedate = $data->duedate;
 			if ($today >= $duedate) { // Если текущая дата больше или равна expiredate
 				date_default_timezone_set($timezone); // Вернем обратно как было
 				// Продлить лицензию
-				$prolong_answer = billmanager_noc_LicenseProlong($params,$data['licenseid']);
+				$prolong_answer = billmanager_noc_LicenseProlong($params,$data->licenseid);
 				if ($prolong_answer["answer"] != 'success') {  // Если не дали продлить по какой-то причине, то не привязываем
 					$use_old_license = false;
 					logModuleCall("billmanager_noc", "license_prolong", $prolong_answer["answer"]);
@@ -272,17 +272,17 @@ function billmanager_noc_CreateAccount($params){
 			}else{ //Если лицензия не перешагнула duedate - нужно её включить
 				date_default_timezone_set($timezone); // Вернем обратно как было
 				// Включение лицензии
-				$answer = billmanager_noc_LicenseUnSuspend($params,$data['licenseid']);
+				$answer = billmanager_noc_LicenseUnSuspend($params,$data->licenseid);
 				if ($answer != "success") return $answer;
 
 				// Запросим ключ лицензии
-				$key_answer = billmanager_noc_get_param($params,$data['licenseid']);
+				$key_answer = billmanager_noc_get_param($params,$data->licenseid);
 				if ($key_answer['answer'] != 'success') return $key_answer['answer'];
 			}
 
 			if ($use_old_license){
 				DB::table('ispsystem_noc')
-					->where('id', $data["id"])
+					->where('id', $data->id)
 					->update([
 						'licensetype' => (array_key_exists("addon_change", $params)) ? 1 : 0,
 						'serviceid' => $params["serviceid"],

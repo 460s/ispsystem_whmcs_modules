@@ -15,9 +15,8 @@ function hook_ispsystem_partners_find_server($addonid){
     if (!$result) return "error";
 
     // Найдем адрес, имя\пароль
-    $result = DB::table('tblservers')->select('id', 'hostname', 'username', 'password')->where('id', $result->serverid)->first();
-    $data = (array)$result;
-    if (!$data) return "error";
+    $server_data = DB::table('tblservers')->select('id', 'hostname', 'username', 'password')->where('id', $result->serverid)->first();
+    if (!$server_data) return "error";
 
     // Чтобы расшифровать пароль, нужно найти активного админа
     $admin_data = DB::table('tbladmins')
@@ -31,14 +30,15 @@ function hook_ispsystem_partners_find_server($addonid){
     if (!$admin_data) return "error";
 
     // Расшифруем пароль
-    $password_req = localAPI('decryptpassword',array("password2" => $data['password']),$admin_data->username);
+    $password_req = localAPI('decryptpassword',array("password2" => $server_data->password),$admin_data->username);
     $password = $password_req['password'];
 
-    return array("serverhostname" => $data['hostname']
-        ,"serverusername" => $data['username']
-        ,"serverpassword" => $password
-        ,"serverid" => $data['id']
-    );
+    return [
+        "serverhostname" => $server_data->hostname,
+        "serverusername" => $server_data->username,
+        "serverpassword" => $password,
+        "serverid" => $server_data->id
+    ];
 }
 
 // Заполнение параметров для функций в billmanager_noc
@@ -68,12 +68,12 @@ function hook_ispsystem_partners_fill_params($vars){
     }
 
     // Имя и IP лицензии
-    $result = DB::table('tblhosting')->select('domain', 'dedicatedip')->where('id', $vars['serviceid'])->first();
-    if (!$result) {
+    $lic_data = DB::table('tblhosting')->select('domain', 'dedicatedip')->where('id', $vars['serviceid'])->first();
+    if (!$lic_data) {
         logModuleCall("hook_ispsystem_partners", "hosting_find", "Can't find tblhosting domain and ip");
         return "error";
     }
-    $params['customfields'] = array('ip' => $result->dedicatedip, 'name' => $result->domain."_addon");
+    $params['customfields'] = ['ip' => $lic_data->dedicatedip, 'name' => $lic_data->domain."_addon"];
     $params['serviceid'] = $vars['id'];
 
     // Установим флаг, что это аддон
@@ -176,13 +176,13 @@ add_hook('PreCronJob',1,function(){
     require substr($mypath,0,strpos($mypath,'addons/ispsystem_partners'))."servers/billmanager_noc/billmanager_noc.php";
 
     foreach ($result as $data) {
-        if (!is_null($data['serviceid'])){
+        if (!is_null($data->serviceid)){
             // Если лицензия привязана
-            if ($today >= $data['duedate']) {
+            if ($today >= $data->duedate) {
                 // Продлеваем лицензию за день до окончания срока
 
                 // Найдем адрес, имя\пароль
-                $server_data = DB::table('tblservers')->select('id', 'hostname', 'username', 'password')->where('id', $data['serverid'])->first();
+                $server_data = DB::table('tblservers')->select('id', 'hostname', 'username', 'password')->where('id', $data->serverid)->first();
                 if (!$server_data) {
                     logModuleCall("hook_ispsystem_partners", "find_server", "Can't find ISPsystem server");
                     continue;
@@ -197,23 +197,23 @@ add_hook('PreCronJob',1,function(){
                 $params['serverpassword'] = $password_req['password'];
                 $params['serverid'] = $server_data->id;
 
-                $answer = billmanager_noc_LicenseProlong($params,$data['licenseid']);
+                $answer = billmanager_noc_LicenseProlong($params,$data->licenseid);
                 if ($answer["answer"] != 'success') {
-                    logModuleCall("hook_ispsystem_partners", "prolong", "Can't prolong license ".$data['licenseid'],$answer['answer']);
+                    logModuleCall("hook_ispsystem_partners", "prolong", "Can't prolong license ".$data->licenseid,$answer['answer']);
                     continue;
                 }
 
                 // Обновим информацию в базе
-                DB::table('ispsystem_noc')->where('id', $data["id"])->update(['duedate' => $answer["duedate"]]);
+                DB::table('ispsystem_noc')->where('id', $data->id)->update(['duedate' => $answer["duedate"]]);
                 $count_prolonged++;
             }
         } else {
             // Если лицензия не привязана
-            if ($today >= $data['terminatedate']) {
+            if ($today >= $data->terminatedate) {
                 // Если сегодня лицензия удалится
                 // Уберем запись из базы
-                DB::table('ispsystem_noc')->where('id', '=', $data['id'])->delete();
-                logModuleCall("hook_ispsystem_partners", "delete", "Deleting license from database: ".$data['licenseid']);
+                DB::table('ispsystem_noc')->where('id', '=', $data->id)->delete();
+                logModuleCall("hook_ispsystem_partners", "delete", "Deleting license from database: ".$data->licenseid);
                 $count_deleted++;
             }
         }
