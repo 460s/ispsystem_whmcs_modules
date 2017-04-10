@@ -26,6 +26,11 @@ function dcimanager_ConfigOptions() {
             "Size" => "64",
             "Default" => "null",
         ],
+        "waiter" => [
+            "FriendlyName" => "Dont wait the OS install",
+            "Type" => "yesno", 
+            "Description" => "Activate service without waiting for the OS installation",
+        ],
     ];
 }
 
@@ -339,10 +344,14 @@ function dcimanager_CreateAccount($params) {
 	$dci_ip = "0.0.0.0";
 	$wait_time = 0;
         
-        //Чтобы не дожидаться установки убераем not(install_in_progress)  
+        if ($params["configoption4"] == "on")  
+            $xpath_expr = "/doc/elem[id='".$server_id."' and not(operation_failed)]";
+        else
+            $xpath_expr = "/doc/elem[id='".$server_id."' and not(install_in_progress) and not(operation_failed)]";
+
 	while (1) {
 		$dci_list = dci_api_request($server_ip, $server_username, $server_password, "server", array());
-		$find_dci = $dci_list->xpath("/doc/elem[id='".$server_id."' and not(install_in_progress) and not(operation_failed)]");
+		$find_dci = $dci_list->xpath($xpath_expr);
 
 		if (count($find_dci) == 0) {
 		} else {

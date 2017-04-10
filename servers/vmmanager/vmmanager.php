@@ -62,6 +62,11 @@ function vmmanager_ConfigOptions() {
             "Size" => "64",
             "Default" => "null",
         ],
+        "waiter" => [
+            "FriendlyName" => "Dont wait the OS install",
+            "Type" => "yesno", 
+            "Description" => "Activate service without waiting for the OS installation",
+        ],
     ];
 }
 
@@ -258,11 +263,15 @@ function vmmanager_CreateAccount($params) {
 
 	vm_save_external_id($params, $vm_id);
 
-	$installed = false;
 	$vm_ip = "0.0.0.0";
+        if ($params["configoption10"] == "on")  
+            $xpath_expr = "/doc/elem[id='".$vm_id."']";
+        else
+            $xpath_expr = "/doc/elem[id='".$vm_id."' and not(installos) and not(installing)]";
+            
 	while (1) {
 		$vm_list = vm_api_request($server_ip, $server_username, $server_password, "vm", array());
-		$find_vm = $vm_list->xpath("/doc/elem[id='".$vm_id."' and not(installos) and not(installing)]");
+		$find_vm = $vm_list->xpath($xpath_expr);
 		if (count($find_vm) == 0) {
 			sleep(30);
 		} else {
