@@ -215,7 +215,7 @@ function dcimanager_CreateAccount($params) {
 		return "No server!";
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
-        //Если услуга не новая, задаем дефолтное значение рецепта сами
+        //Если услуга не новая, задаем значение по умолчанию
         $params["configoption3"] === "" ? $recipe = "null" : $recipe = $params["configoption3"];
 
 	$service_username = $params["username"];
@@ -265,17 +265,15 @@ function dcimanager_CreateAccount($params) {
 
 	$os = $params["configoption2"];
 
-	if (array_key_exists("os", $params["configoptions"])) {
+	if (array_key_exists("os", $params["configoptions"]))
 		$os = ($params["configoptions"]["os"]);
-	}
-
-	if (array_key_exists("OS", $params["configoptions"])) {
+	if (array_key_exists("OS", $params["configoptions"]))
                 $os = ($params["configoptions"]["OS"]);
-        }
-
-	if (array_key_exists("ostemplate", $params["configoptions"])) {
+	if (array_key_exists("ostemplate", $params["configoptions"]))
                 $os = ($params["configoptions"]["ostemplate"]);
-        }
+        if (array_key_exists("recipe", $params["configoptions"]))
+                $recipe = ($params["configoptions"]["recipe"]);
+
 
 	$ip_count = 0;
 	$ipv6_count = 0;

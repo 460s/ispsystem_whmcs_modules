@@ -169,7 +169,7 @@ function vemanager_CreateAccount($params) {
 		return "No server!";
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
-        //Если услуга не новая, задаем дефолтное значение рецепта сами
+        //Если услуга не новая, задаем значение по умолчанию
         $params["configoption12"] === "" ? $recipe = "null" : $recipe = $params["configoption12"];
 
 	$service_username = $params["username"];
@@ -222,18 +222,15 @@ function vemanager_CreateAccount($params) {
             "recipe" => $recipe,
 	];
 
-	if (array_key_exists("os", $params["configoptions"])) {
-		$container_create_param["ostemplate"] = strtolower($params["configoptions"]["os"]);
-	}
-
-	if (array_key_exists("OS", $params["configoptions"])) {
-                $container_create_param["ostemplate"] = strtolower($params["configoptions"]["OS"]);
-        }
-
-	if (array_key_exists("ostemplate", $params["configoptions"])) {
-                $container_create_param["ostemplate"] = strtolower($params["configoptions"]["ostemplate"]);
-        }
-
+	if (array_key_exists("os", $params["configoptions"]))
+            $container_create_param["ostemplate"] = strtolower($params["configoptions"]["os"]);
+	if (array_key_exists("OS", $params["configoptions"]))
+            $container_create_param["ostemplate"] = strtolower($params["configoptions"]["OS"]);
+	if (array_key_exists("ostemplate", $params["configoptions"]))
+            $container_create_param["ostemplate"] = strtolower($params["configoptions"]["ostemplate"]);
+        if (array_key_exists("recipe", $params["configoptions"]))
+            $container_create_param["recipe"] = $params["configoptions"]["recipe"];
+ 
 	$ip_count = $params["configoption10"] == "ipv4" ? -1 : 0;
 	$ipv6_count = $params["configoption10"] == "ipv6" ? -1 : 0;
 

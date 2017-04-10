@@ -161,13 +161,12 @@ function vm_find_error($xml) {
         return $error;
 }
 
-
+/* 
+ * Получить список пользователей
+ * Создать пользователя
+ * Создать контейнер
+ */
 function vmmanager_CreateAccount($params) {
-        /* 
-         * Получить список пользователей
-	 * Создать пользователя
-	 * Создать контейнер
-         */
 	global $op;
 	$op = "create";
 
@@ -176,7 +175,7 @@ function vmmanager_CreateAccount($params) {
                 return "No server!";
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
-        //Если услуга не новая, задаем дефолтное значение рецепта сами
+        //Если услуга не новая, задаем значение по умолчанию
         $params["configoption9"] === "" ? $recipe = "null" : $recipe = $params["configoption9"];
 
 	$service_username = $params["username"];
@@ -226,33 +225,24 @@ function vmmanager_CreateAccount($params) {
             "recipe" => $recipe,
         ];
 
-	if (array_key_exists("os", $params["configoptions"])) {
-		$vm_create_param["vmi"] = ($params["configoptions"]["os"]);
-	}
-
-	if (array_key_exists("OS", $params["configoptions"])) {
-                $vm_create_param["vmi"] = ($params["configoptions"]["OS"]);
-        }
-
-	if (array_key_exists("ostemplate", $params["configoptions"])) {
-                $vm_create_param["vmi"] = ($params["configoptions"]["ostemplate"]);
-        }
-
-	if (array_key_exists("vmi", $params["configoptions"])) {
-                $vm_create_param["vmi"] = ($params["configoptions"]["vmi"]);
-        }
-
+	if (array_key_exists("os", $params["configoptions"])) 
+            $vm_create_param["vmi"] = ($params["configoptions"]["os"]);
+	if (array_key_exists("OS", $params["configoptions"])) 
+            $vm_create_param["vmi"] = ($params["configoptions"]["OS"]);
+	if (array_key_exists("ostemplate", $params["configoptions"])) 
+            $vm_create_param["vmi"] = ($params["configoptions"]["ostemplate"]);
+	if (array_key_exists("vmi", $params["configoptions"])) 
+            $vm_create_param["vmi"] = ($params["configoptions"]["vmi"]);       
+        if (array_key_exists("recipe", $params["configoptions"]))
+            $vm_create_param["recipe"] = $params["configoptions"]["recipe"];
+        
 	$ip_count = $params["configoption7"] == "ipv4" ? -1 : 0;
 	$ipv6_count = $params["configoption7"] == "ipv6" ? -1 : 0;
-
-	if (array_key_exists("IP", $params["configoptions"])) {
+	if (array_key_exists("IP", $params["configoptions"]))
 		$ip_count += $params["configoptions"]["IP"];
-        }
-
-	if (array_key_exists("IPv6", $params["configoptions"])) {
+	if (array_key_exists("IPv6", $params["configoptions"]))
                 $ipv6_count += $params["configoptions"]["IPv6"];
-        }
-
+      
 	$vm_create = vm_api_request($server_ip, $server_username, $server_password, "vm.edit", $vm_create_param);
 
 	$error = vm_find_error($vm_create);
