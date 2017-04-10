@@ -2,31 +2,31 @@
 use WHMCS\Database\Capsule as DB;
 
 function dcimanager_MetaData(){
-    return array(
-		'DisplayName' => 'DCImanager',
-		'RequiresServer' => true,
-    );
+    return [
+        'DisplayName' => 'DCImanager',
+        'RequiresServer' => true,
+    ];
 }
 
 function dcimanager_ConfigOptions() {
-	return [
-            "package" => [
-                "FriendlyName" => "Package Name",
-                    "Type" => "text",
-                    "Size" => "32",
-                ],
-		"os" => [
-                    "FriendlyName" => "Operation system",
-                    "Type" => "text",
-                    "Size" => "64",
-                ],
-                "recipe" => [
-                    "FriendlyName" => "Recipe Name",
-                    "Type" => "text",
-                    "Size" => "64",
-                    "Default" => "null",
-                ],
-        ];
+    return [
+        "package" => [
+            "FriendlyName" => "Package Name",
+            "Type" => "text",
+            "Size" => "32",
+        ],
+        "os" => [
+            "FriendlyName" => "Operation system",
+            "Type" => "text",
+            "Size" => "64",
+        ],
+        "recipe" => [
+            "FriendlyName" => "Recipe Name",
+            "Type" => "text",
+            "Size" => "64",
+            "Default" => "null",
+        ],
+    ];
 }
 
 function dci_get_external_id($params) {
@@ -318,14 +318,15 @@ function dcimanager_CreateAccount($params) {
 	dci_set_server_domain($params, $server_id, $params["domain"]);
 
 	$dci_install = dci_api_request($server_ip, $server_username, $server_password, "server.operations",
-					array(	"sok" => "ok",
-						"elid" => $server_id,
-						"operation" => "ostemplate",
-						"ostemplate" => $os,
-						"passwd" => $password,
-						"confirm" => $password,
-						"checkpasswd" => $password,
-                                                "recipe" => $recipe));
+            ["sok" => "ok",
+            "elid" => $server_id,
+            "operation" => "ostemplate",
+            "ostemplate" => $os,
+            "passwd" => $password,
+            "confirm" => $password,
+            "checkpasswd" => $password,
+            "recipe" => $recipe]
+        );
 
 	$error = dci_find_error($dci_install);
 	if ($error != "") {
