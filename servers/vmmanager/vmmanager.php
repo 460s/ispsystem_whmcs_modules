@@ -108,11 +108,39 @@ function vm_api_request($ip, $username, $password, $func, $param) {
 	foreach ($param as $key => &$value) {
 		$value = (string)$value;
 	}
-
+        
 	$response = curlCall($url, array_merge($postfields, $param), $options);
 	logModuleCall("VMmanager:".$func, $op, array_merge($postfields, $param), $response, $response, array ($password));
 
 	simplexml_load_string($default_xml_string);
+
+	try {
+		$out = new SimpleXMLElement($response);
+	} catch (Exception $e) {
+		$out = simplexml_load_string($default_xml_error_string);
+		$out->error->addChild("msg", $e->getMessage());
+	}
+
+	return $out;
+}
+
+function vm_request($ip, $func, $param) {
+	global $op;
+
+	$default_xml_string = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<doc/>\n";
+	$default_xml_error_string = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<doc><error type=\"curl\"/></doc>\n";
+
+	$url = "https://".$ip."/vmmgr";
+	$postfields = array("out" => "xml", "func" => (string)$func, );
+	$options = array ('CURLOPT_TIMEOUT' => '60');
+	foreach ($param as $key => &$value) {
+		$value = (string)$value;
+	}
+
+	$response = curlCall($url, array_merge($postfields, $param), $options);
+	logModuleCall("VMmanager:".$func, $op, array_merge($postfields, $param), $response, $response);
+
+	$out = simplexml_load_string($default_xml_string);
 
 	try {
 		$out = new SimpleXMLElement($response);
@@ -372,11 +400,7 @@ function vmmanager_ChangePackage($params) {
 }
 
 function vmmanager_ClientAreaCustomButtonArray() {
-	$button_array = array(
-				"Reboot Server" => "reboot",
-			);
-
-	return $button_array;
+    return ["Reboot Server" => "reboot"];
 }
 
 function vmmanager_AdminCustomButtonArray() {
@@ -389,40 +413,35 @@ function vmmanager_reboot($params) {
 	return vm_process_operation("vm.restart", $params);
 }
 
+/*
+ * Форма target _blank передает признак перехода в vmmgr
+ * При получении признака генерируется ключ сессии для текущего пользователя
+ * С ключем выполняются все перенаправления в vmmgr со связкой key+func+prop
+ */
 function vmmanager_ClientArea($params) {
 	global $op;
 	$op = "client area";
-	$code = "";
-	if ($_POST["process_vmmanager"] == "true") {
-		$server_ip = $params["serverip"];
-	        $server_username = $params["serverusername"];
-        	$server_password = $params["serverpassword"];
 
-		$key = md5(time()).md5($params["username"]);
-		$newkey = vm_api_request($server_ip, $server_username, $server_password, "session.newkey", array("username" => $params["username"],
-	                                                                                                       	"key" => $key));
-		$error = vm_find_error($newkey);
-        	if ($error != "") {
-                	return "Error";
-        	}
+	if ($_POST["process_vmmanager"] == "true") {               
+                $authinfo = vm_request($params["serverip"], "auth", array("username" => $params["username"], "password" => $params["password"]));
+                $auth_id = $authinfo->auth;
+                
+                if (isset($_POST["novnc"])){
+                    $elid = vm_get_external_id($params);
+                    $args = "&func=vm.novnc&newwindow=yes&elid=".$elid;
+                }
 
-		$code = "<form action='https://".$params["serverip"]."/vmmgr' method='post' name='vmlogin'>
-                        <input type='hidden' name='func' value='auth' />
-			<input type='hidden' name='username' value='".$params["username"]."' />
-			<input type='hidden' name='checkcookie' value='no' />
-			<input type='hidden' name='key' value='".$key."' />
-                        <input type='submit' value='Login to Control Panel' class='button'/>
-                        </form>
-			<script language='JavaScript'>document.vmlogin.submit();</script>";
+                header("Location: https://".$params["serverip"]."/vmmgr?auth=".$auth_id.$args);                
+                exit;               
 	} else {
 		$code = "<form action='clientarea.php' method='post' target='_blank'>
 			<input type='hidden' name='action' value='productdetails' />
 			<input type='hidden' name='id' value='".$params["serviceid"]."' />
 			<input type='hidden' name='process_vmmanager' value='true' />
-			<input type='submit' value='Login to Control Panel' class='button'/>
+			<input type='submit' name='auth' value='Login to Control Panel'/>
+                        <input type='submit' name='novnc' value='Open noVNC client'/>
 			</form>";
 	}
-
 	return $code;
 }
 
