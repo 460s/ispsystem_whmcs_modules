@@ -268,7 +268,7 @@ function vmmanager_CreateAccount($params) {
             $xpath_expr = "/doc/elem[id='".$vm_id."']";
         else
             $xpath_expr = "/doc/elem[id='".$vm_id."' and not(installos) and not(installing)]";
-            
+        
 	while (1) {
 		$vm_list = vm_api_request($server_ip, $server_username, $server_password, "vm", array());
 		$find_vm = $vm_list->xpath($xpath_expr);

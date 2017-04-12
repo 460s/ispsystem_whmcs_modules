@@ -189,12 +189,9 @@ function ispmanager_GenerateUsername($params, $template) {
 	return $template;
 }
 
-function ispmanager_CreateAccount($params) {
-        logModuleCall("ISP", "test", $params, $params, "");
-        //return "dfssdf";
-        
+function ispmanager_CreateAccount($params) {     
 	global $op;
-	$params["producttype"] == "reselleraccount" ? $op = "reseller_create" : $op = "user_create";
+	$op = "create";
 
 	$server_ip = $params["serverip"];
 	if ($server_ip == "") return "No server!";
