@@ -78,7 +78,10 @@ function vmmanager_AdminServicesTabFields($params) {
 function vm_get_external_id($params) {
 	$result = DB::table('mod_ispsystem')
 		->select('external_id')
-		->where('serviceid', $params["serviceid"])
+		->where([
+                    ['serviceid', $params["serviceid"]],
+                    ['external_id', '<>', ''],
+                ])
 		->first();
 	if ($result) {
 		return $result->external_id;
