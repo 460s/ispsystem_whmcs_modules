@@ -381,7 +381,7 @@ function ispmanager_reseller_ClientArea($params) {
     return $code;
 }
 
-function ispmanager_reseller_ServiceSingleSignOn($params){
+function ispmanager_reseller_AdminSingleSignOn($params){
     $server_ip = $params["serverip"];
     $server_username = $params["serverusername"];
     $server_password = $params["serverpassword"];
@@ -407,8 +407,5 @@ function ispmanager_reseller_ServiceSingleSignOn($params){
     }
 }
 
-function ispmanager_reseller_AdminSingleSignOn($params){
-    return ispmanager_reseller_ServiceSingleSignOn($params);
-}
 
 ?>

@@ -5,6 +5,8 @@ function dcimanager_MetaData(){
     return [
         'DisplayName' => 'DCImanager',
         'RequiresServer' => true,
+        'ServiceSingleSignOnLabel' => 'Login to DCImanager',
+        'AdminSingleSignOnLabel' => 'Login to DCImanager',
     ];
 }
 
@@ -525,15 +527,23 @@ function dcimanager_ChangePackage($params) {
         return "Error: Not supported!";
 }
 
+function dcimanager_ClientArea($params) {
+    if ($_POST["process"] == "true") {               
+        $auth = dcimanager_ServiceSingleSignOn($params);
+        header("Location: ".$auth["redirectTo"]);                
+        exit;                 
+    } 
+}
+
 function dcimanager_ClientAreaCustomButtonArray() {
-	return array(
-				"Reboot Server" => "reboot",
-				"Power off Server" => "poweroff",
-				"Power on Server" => "poweron",
-				"Server network off" => "networkoff",
-				"Server network on" => "networkon",
-				"Reinstall" => "reinstall",
-			);
+    return [
+        "Reboot Server" => "reboot",
+        "Power off Server" => "poweroff",
+        "Power on Server" => "poweron",
+        "Server network off" => "networkoff",
+        "Server network on" => "networkon",
+        "Reinstall" => "reinstall",
+    ];
 }
 
 function dcimanager_AdminCustomButtonArray() {
