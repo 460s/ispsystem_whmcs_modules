@@ -2,10 +2,11 @@
 use WHMCS\Database\Capsule as DB;
 
 function vmmanager_MetaData(){
-    return array(
-		'DisplayName' => 'VMmanager',
-		'RequiresServer' => true,
-    );
+    return [
+        'DisplayName' => 'VMmanager',
+        'RequiresServer' => true,
+        'AdminSingleSignOnLabel' => 'Login to VMmanager',
+        ];
 }
 
 function vmmanager_ConfigOptions() {
@@ -499,40 +500,32 @@ function vmmanager_UsageUpdate($params) {
 	}
 }
 
-function vmmanager_AdminLink($params) {
-        global $op;
-        $op = "client area";
-        $code = "";
-        if ($_POST["process_vmmanager"] == "true" && $_POST["process_ip"] == $params["serverip"]) {
-                $server_ip = $params["serverip"];
-                $server_username = $params["serverusername"];
-                $server_password = $params["serverpassword"];
+function vmmanager_AdminSingleSignOn($params){
+    global $op;
+    $op = "auth";
+    
+    $server_ip = $params["serverip"];
+    $server_username = $params["serverusername"];
+    $server_password = $params["serverpassword"];
 
-                $key = md5(time()).md5($params["username"]);
-                $newkey = vm_api_request($server_ip, $server_username, $server_password, "session.newkey", array("username" => $server_username,
-                                                                                                                "key" => $key));
-                $error = vm_find_error($newkey);
-                if ($error != "") {
-                        return $error;
-		}
-
-                $code = "<form action='https://".$params["serverip"]."/vmmgr' method='post' name='vmlogin'>
-                        <input type='hidden' name='func' value='auth' />
-                        <input type='hidden' name='username' value='".$server_username."' />
-                        <input type='hidden' name='checkcookie' value='no' />
-                        <input type='hidden' name='key' value='".$key."' />
-                        <input type='submit' value='VMmanager' class='button'/>
-                        </form>
-                        <script language='JavaScript'>document.vmlogin.submit();</script>";
-        } else {
-                $code = "<form action='configservers.php' method='post' target='_blank'>
-                        <input type='hidden' name='process_vmmanager' value='true' />
-			<input type='hidden' name='process_ip' value='".$params["serverip"]."' />
-                        <input type='submit' value='VMmanager' class='button'/>
-                        </form>";
+    try {
+        $key = md5(time()).md5($params["username"]);
+        $newkey = vm_api_request($server_ip, $server_username, $server_password, "session.newkey", ["username" => $server_username, "key" => $key]);        
+        $error = vm_find_error($newkey);
+        
+        if (!empty($error)) {
+             return  ['success' => false, 'errorMsg' => $error];
         }
 
-        return $code;
+        return [
+            'success' => true,
+            'redirectTo' => "https://".$server_ip."/vmmgr?checkcookie=no&func=auth&username=".$server_username."&key=".$key,
+        ];
+    } catch (Exception $e) {
+         return [
+            'success' => false,
+            'errorMsg' => $e->getMessage(),
+        ];
+    }
 }
-
 ?>

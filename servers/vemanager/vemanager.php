@@ -6,6 +6,7 @@ function vemanager_MetaData(){
     return array(
         'DisplayName' => 'VEmanager',
         'RequiresServer' => true,
+        'AdminSingleSignOnLabel' => 'Login to VEmanager',
     );
 }
 
@@ -573,40 +574,32 @@ function vemanager_UsageUpdate($params) {
 	}
 }
 
-function vemanager_AdminLink($params) {
-        global $op;
-        $op = "client area";
-        $code = "";
-        if ($_POST["process_vemanager"] == "true" && $params["serverip"] == $_POST["process_ip"]) {
-                $server_ip = $params["serverip"];
-                $server_username = $params["serverusername"];
-                $server_password = $params["serverpassword"];
+function vemanager_AdminSingleSignOn($params){
+    global $op;
+    $op = "auth";
+    
+    $server_ip = $params["serverip"];
+    $server_username = $params["serverusername"];
+    $server_password = $params["serverpassword"];
 
-		$key = md5(time()).md5($params["username"]);
-                $newkey = ve_api_request($server_ip, $server_username, $server_password, "session.newkey", array("username" => $server_username,
-                                                                                                                "key" => $key));
-                $error = ve_find_error($newkey);
-                if ($error != "") {
-                        return $error;
-                }
-
-                $code = "<form action='https://".$params["serverip"]."/vemgr' method='post' name='velogin'>
-                        <input type='hidden' name='func' value='auth' />
-                        <input type='hidden' name='username' value='".$server_username."' />
-                        <input type='hidden' name='checkcookie' value='no' />
-                        <input type='hidden' name='key' value='".$key."' />
-                        <input type='submit' value='VEmanager' class='button'/>
-                        </form>
-                        <script language='JavaScript'>document.velogin.submit();</script>";
-        } else {
-                $code = "<form action='configservers.php' method='post' target='_blank'>
-                        <input type='hidden' name='process_vemanager' value='true' />
-			<input type='hidden' name='process_ip' value='".$params["serverip"]."' />
-                        <input type='submit' value='VEmanager' class='button'/>
-                        </form>";
+    try {
+        $key = md5(time()).md5($params["username"]);
+        $newkey = ve_api_request($server_ip, $server_username, $server_password, "session.newkey", ["username" => $server_username, "key" => $key]);        
+        $error = ve_find_error($newkey);
+        
+        if (!empty($error)) {
+             return  ['success' => false, 'errorMsg' => $error];
         }
 
-        return $code;
+        return [
+            'success' => true,
+            'redirectTo' => "https://".$server_ip."/vmmgr?checkcookie=no&func=auth&username=".$server_username."&key=".$key,
+        ];
+    } catch (Exception $e) {
+         return [
+            'success' => false,
+            'errorMsg' => $e->getMessage(),
+        ];
+    }
 }
-
 ?>
