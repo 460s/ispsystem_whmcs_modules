@@ -2,137 +2,138 @@
 use WHMCS\Database\Capsule as DB;
 
 function ispmanager_MetaData(){
-    return array(
+    return [
         'DisplayName' => 'ISPmanager',
         'RequiresServer' => true,
-    );
+        'AdminSingleSignOnLabel' => 'Login to ISPmanager',
+    ];
 }
 
 function ispmanager_ConfigOptions() {
-	return array(
-		"package" => array(
-					"FriendlyName" => "Package Name",
-					"Type" => "text",
-					"Size" => "25",
-				),
-		"limit_quota" =>	array(
-					"FriendlyName" => "Disk quota",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "MiB",
-				),
-		"limit_traff" =>	array(
-					"FriendlyName" => "Traffic quota",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "MiB",
-				),
-		"limit_db" =>	array(
-					"FriendlyName" => "Db count",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "Unit",
-				),
-		"limit_db_users" =>	array(
-					"FriendlyName" => "Db user count",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "Unit",
-				),
-		"limit_ftp_users" =>	array(
-					"FriendlyName" => "FTP user count",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "Unit",
-				),
-		"limit_webdomains" =>	array(
-					"FriendlyName" => "Web domains count",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "Unit",
-				),
-		"limit_emaildomains" =>	array(
-					"FriendlyName" => "Email domains count",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "Unit",
-				),
-		"limit_emails" =>	array(
-					"FriendlyName" => "Email box count",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "Unit",
-				),
-		"limit_cpu" =>	array(
-					"FriendlyName" => "CPU time",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "Unit",
-				),
-		"limit_memory" =>	array(
-					"FriendlyName" => "Memory limit",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "MiB",
-				),
-		"limit_process" =>	array(
-					"FriendlyName" => "Processes count limit",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "Unit",
-				),
-		"limit_email_quota" =>	array(
-					"FriendlyName" => "Email box quota",
-					"Type" => "text",
-					"Size" => "8",
-					"Description" => "MiB",
-				),
-		"family" =>	array(
-					"FriendlyName" => "Main IP address type",
-					"Type" => "dropdown",
-					"Options" => "shared,ipv4,ipv6",
-					"Default" => "shared",
-				),
-		"username_template" =>	array(
-					"FriendlyName" => "Username template",
-					"Type" => "text",
-					"Size" => "32",
-					"Description" => "<br/><br/>@ID@ - service id<br/>@DOMAIN@ - domain name",
-				),
-	);
+    return [
+        "package" => [
+            "FriendlyName" => "Package Name",
+            "Type" => "text",
+            "Size" => "25",
+        ],
+        "limit_quota" => [
+            "FriendlyName" => "Disk quota",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "MiB",
+        ],
+        "limit_traff" => [
+            "FriendlyName" => "Traffic quota",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "MiB",
+        ],
+        "limit_db" => [
+            "FriendlyName" => "Db count",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "pcs",
+        ],
+        "limit_db_users" => [
+            "FriendlyName" => "Db user count",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "pcs",
+        ],
+        "limit_ftp_users" => [
+            "FriendlyName" => "FTP user count",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "pcs",
+        ],
+        "limit_webdomains" => [
+            "FriendlyName" => "Web domains count",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "pcs",
+        ],
+        "limit_emaildomains" => [
+            "FriendlyName" => "Email domains count",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "pcs",
+        ],
+        "limit_emails" => [
+            "FriendlyName" => "Email box count",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "pcs",
+        ],
+        "limit_cpu" => [
+            "FriendlyName" => "CPU time",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "pcs",
+        ],
+        "limit_memory" => [
+            "FriendlyName" => "Memory limit",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "MiB",
+        ],
+        "limit_process" => [
+            "FriendlyName" => "Processes count limit",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "pcs",
+        ],
+        "limit_email_quota" => [
+            "FriendlyName" => "Email box quota",
+            "Type" => "text",
+            "Size" => "8",
+            "Description" => "MiB",
+        ],
+        "family" => [
+            "FriendlyName" => "Main IP address type",
+            "Type" => "dropdown",
+            "Options" => "shared,ipv4,ipv6",
+            "Default" => "shared",
+        ],
+        "username_template" => [
+            "FriendlyName" => "Username template",
+            "Type" => "text",
+            "Size" => "32",
+            "Description" => "<br/><br/>@ID@ - service id<br/>@DOMAIN@ - domain name",
+        ],
+    ];
 }
 
 function ispmgr_get_external_id($params) {
-	return $params["username"];
+    return $params["username"];
 }
 
 function ispmgr_api_request($ip, $username, $password, $func, $param) {
     global $op;
 
-	$default_xml_string = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<doc/>\n";
-	$default_xml_error_string = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<doc><error type=\"curl\"/></doc>\n";
+    $default_xml_string = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<doc/>\n";
+    $default_xml_error_string = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<doc><error type=\"curl\"/></doc>\n";
 
-	$url = "https://".$ip."/ispmgr";
-	$postfields = array("out" => "xml", "func" => (string)$func, "authinfo" => (string)$username.":".(string)$password, );
-	$options = array ('CURLOPT_TIMEOUT' => '60');
-	foreach ($param as $key => &$value) {
-		$value = (string)$value;
-	}
+    $url = "https://".$ip."/ispmgr";
+    $postfields = array("out" => "xml", "func" => (string)$func, "authinfo" => (string)$username.":".(string)$password, );
+    $options = array ('CURLOPT_TIMEOUT' => '60');
+    foreach ($param as $key => &$value) {
+            $value = (string)$value;
+    }
 
-	$response = curlCall($url, array_merge($postfields, $param), $options);
+    $response = curlCall($url, array_merge($postfields, $param), $options);
 
-	logModuleCall("ISPmanager:".$func, $op, array_merge($postfields, $param), $response, $response, array ($password));
+    logModuleCall("ISPmanager:".$func, $op, array_merge($postfields, $param), $response, $response, array ($password));
 
-	simplexml_load_string($default_xml_string);
+    simplexml_load_string($default_xml_string);
 
-	try {
-		$out = new SimpleXMLElement($response);
-	} catch (Exception $e) {
-		$out = simplexml_load_string($default_xml_error_string);
-		$out->error->addChild("msg", $e->getMessage());
-	}
+    try {
+            $out = new SimpleXMLElement($response);
+    } catch (Exception $e) {
+            $out = simplexml_load_string($default_xml_error_string);
+            $out->error->addChild("msg", $e->getMessage());
+    }
 
-	return $out;
+    return $out;
 }
 
 function ispmgr_find_error($xml) {
@@ -165,55 +166,47 @@ function ispmanager_GenerateUsername($params, $template) {
 	return $template;
 }
 
-function ispmanager_CreateAccount($params) {
+function ispmanager_CreateAccount($params) {     
 	global $op;
 	$op = "create";
 
 	$server_ip = $params["serverip"];
-	if ($server_ip == "")
-		return "No server!";
+	if ($server_ip == "") return "No server!";
 
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
-
 	$service_username = $params["username"];
-
-	if (array_key_exists("configoption15", $params) && $params["configoption15"] != "") {
+        
+	if (array_key_exists("configoption15", $params) && $params["configoption15"] != "")
 		$service_username = ispmanager_GenerateUsername($params, $params["configoption15"]);
-	}
 
-	$user_list = ispmgr_api_request($server_ip, $server_username, $server_password, "user", array());
+ 	$user_list = ispmgr_api_request($server_ip, $server_username, $server_password, "user", array());
 	$find_user = $user_list->xpath("/doc/elem[level='16' and name='".$service_username."']");
 	$user_name = $find_user[0]->name;
-
-	if ($user_name != "") {
-		return "User with same username exists!";
-	}
+	if ($user_name != "") return "User with same username exists!";
 
 	$preset_list = ispmgr_api_request($server_ip, $server_username, $server_password, "preset", array());
 	$find_preset = $preset_list->xpath("/doc/elem[name='".$params["configoption1"]."']");
 	$preset_name = $find_preset[0]->name;
-
-	if ($preset_name == "")
-		return "Can not find preset!";
-
-	$user_create_param = array (
-					"sok" => "ok",
-					"preset" => $params["configoption1"],
-					"name" => $service_username,
-					"ftp_user_name" => $service_username,
-					"passwd" => $params["password"],
-					"fullname" => $params["clientsdetails"]["lastname"]." ".$params["clientsdetails"]["firstname"],
-					);
-
-	$preset_param = ispmgr_api_request($server_ip, $server_username, $server_password, "preset.edit", array("elid" => $params["configoption1"],));
+	if ($preset_name == "") return "Can not find preset!";
+     
+	$user_create_param = [
+            "sok" => "ok",
+            "preset" => $params["configoption1"],
+            "name" => $service_username,
+            "ftp_user_name" => $service_username,
+            "passwd" => $params["password"],
+            "fullname" => $params["clientsdetails"]["lastname"]." ".$params["clientsdetails"]["firstname"],
+        ];
+        
+        $preset_param = ispmgr_api_request($server_ip, $server_username, $server_password, "preset.edit", array("elid" => $params["configoption1"],));
 	$find_preset_param = $preset_param->xpath("/doc/*");
 	foreach($find_preset_param as $param) {
 		if (strpos($param->getName(), "limit_") === 0) {
 			$user_create_param[$param->getName()] = (string)$param;
 		}
 	}
-
+        
 	if (array_key_exists("domain", $params) && $params["domain"] != "") {
 		$domain_list = ispmgr_api_request($server_ip, $server_username, $server_password, "webdomain", array());
 		$find_domain = $domain_list->xpath("/doc/elem[name='".$params["domain"]."']");
@@ -249,53 +242,18 @@ function ispmanager_CreateAccount($params) {
 		$user_create_param["emaildomain"] = "off";
 	}
 
-	if (array_key_exists("configoption2", $params) && $params["configoption2"] != "") {
-		$user_create_param["limit_quota"] = $params["configoption2"];
-	}
-
-	if (array_key_exists("configoption3", $params) && $params["configoption3"] != "") {
-		$user_create_param["limit_traff"] = $params["configoption3"];
-	}
-
-	if (array_key_exists("configoption4", $params) && $params["configoption4"] != "") {
-		$user_create_param["limit_db"] = $params["configoption4"];
-	}
-
-	if (array_key_exists("configoption5", $params) && $params["configoption5"] != "") {
-		$user_create_param["limit_db_users"] = $params["configoption5"];
-	}
-
-	if (array_key_exists("configoption6", $params) && $params["configoption6"] != "") {
-		$user_create_param["limit_ftp_users"] = $params["configoption6"];
-	}
-
-	if (array_key_exists("configoption7", $params) && $params["configoption7"] != "") {
-		$user_create_param["limit_webdomains"] = $params["configoption7"];
-	}
-
-	if (array_key_exists("configoption8", $params) && $params["configoption8"] != "") {
-		$user_create_param["limit_emaildomains"] = $params["configoption8"];
-	}
-
-	if (array_key_exists("configoption9", $params) && $params["configoption9"] != "") {
-		$user_create_param["limit_emails"] = $params["configoption9"];
-	}
-
-	if (array_key_exists("configoption10", $params) && $params["configoption10"] != "") {
-		$user_create_param["limit_cpu"] = $params["configoption10"];
-	}
-
-	if (array_key_exists("configoption11", $params) && $params["configoption11"] != "") {
-		$user_create_param["limit_memory"] = $params["configoption11"];
-	}
-
-	if (array_key_exists("configoption12", $params) && $params["configoption12"] != "") {
-		$user_create_param["limit_process"] = $params["configoption12"];
-	}
-
-	if (array_key_exists("configoption13", $params) && $params["configoption13"] != "") {
-		$user_create_param["limit_email_quota"] = $params["configoption13"];
-	}
+	if ($params["configoption2"] != "") $user_create_param["limit_quota"] = $params["configoption2"];
+	if ($params["configoption3"] != "") $user_create_param["limit_traff"] = $params["configoption3"];
+	if ($params["configoption4"] != "") $user_create_param["limit_db"] = $params["configoption4"];
+	if ($params["configoption5"] != "") $user_create_param["limit_db_users"] = $params["configoption5"];
+	if ($params["configoption6"] != "") $user_create_param["limit_ftp_users"] = $params["configoption6"];
+	if ($params["configoption7"] != "") $user_create_param["limit_webdomains"] = $params["configoption7"];
+	if ($params["configoption8"] != "") $user_create_param["limit_emaildomains"] = $params["configoption8"];
+	if ($params["configoption9"] != "") $user_create_param["limit_emails"] = $params["configoption9"];
+	if ($params["configoption10"] != "") $user_create_param["limit_cpu"] = $params["configoption10"];
+	if ($params["configoption11"] != "") $user_create_param["limit_memory"] = $params["configoption11"];
+	if ($params["configoption12"] != "") $user_create_param["limit_process"] = $params["configoption12"];
+	if ($params["configoption13"] != "") $user_create_param["limit_email_quota"] = $params["configoption13"];
 
 	$save_ip = false;
 	$ip_count = 0;
@@ -562,40 +520,33 @@ function ispmanager_ClientArea($params) {
 	return $code;
 }
 
-function ispmanager_AdminLink($params) {
-		global $op;
-		$op = "client area";
-		$code = "";
-		if ($_POST["process_ispmanager"] == "true" && $params["serverip"] == $_POST["process_ip"]) {
-				$server_ip = $params["serverip"];
-				$server_username = $params["serverusername"];
-				$server_password = $params["serverpassword"];
+function ispmanager_AdminSingleSignOn($params){
+    global $op;
+    $op = "auth";
+    
+    $server_ip = $params["serverip"];
+    $server_username = $params["serverusername"];
+    $server_password = $params["serverpassword"];
 
-				$key = md5(time()).md5($params["username"]);
-				$newkey = ispmgr_api_request($server_ip, $server_username, $server_password, "session.newkey", array("username" => $server_username,
-																													 "key" => $key));
-				$error = ispmgr_find_error($newkey);
-				if ($error != "") {
-						return $error;
-				}
+    try {
+        $key = md5(time()).md5($params["username"]);
+        $newkey = ispmgr_api_request($server_ip, $server_username, $server_password, "session.newkey", ["username" => $server_username, "key" => $key]);        
+        $error = ispmgr_find_error($newkey);
+        
+        if (!empty($error)) {
+             return  ['success' => false, 'errorMsg' => $error];
+        }
 
-				$code = "<form action='https://".$params["serverip"]."/ispmgr' method='post' name='isplogin'>
-						<input type='hidden' name='func' value='auth' />
-						<input type='hidden' name='username' value='".$server_username."' />
-						<input type='hidden' name='checkcookie' value='no' />
-						<input type='hidden' name='key' value='".$key."' />
-						<input type='submit' value='ISPmanager' class='button'/>
-						</form>
-						<script language='JavaScript'>document.isplogin.submit();</script>";
-		} else {
-				$code = "<form action='configservers.php' method='post' target='_blank'>
-						<input type='hidden' name='process_ispmanager' value='true' />
-						<input type='hidden' name='process_ip' value='".$params["serverip"]."' />
-						<input type='submit' value='ISPmanager' class='button'/>
-						</form>";
-		}
-
-    return $code;
+        return [
+            'success' => true,
+            'redirectTo' => "https://".$server_ip."/ispmgr?checkcookie=no&func=auth&username=".$server_username."&key=".$key,
+        ];
+    } catch (Exception $e) {
+         return [
+            'success' => false,
+            'errorMsg' => $e->getMessage(),
+        ];
+    }
 }
 
 ?>
