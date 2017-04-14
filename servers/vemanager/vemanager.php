@@ -81,6 +81,11 @@ function vemanager_ConfigOptions() {
             "Size" => "64",
             "Default" => "null",
         ],
+        "waiter" => [
+            "FriendlyName" => "Dont wait the OS install",
+            "Type" => "yesno", 
+            "Description" => "Activate service without waiting for the OS installation",
+        ],
     ];
 }
 
@@ -262,9 +267,14 @@ function vemanager_CreateAccount($params) {
 
 	$installed = false;
 	$container_ip = "0.0.0.0";
+        if ($params["configoption13"] == "on")  
+            $xpath_expr = "/doc/elem[id='".$container_id."']";
+        else
+            $xpath_expr = "/doc/elem[id='".$container_id."' and not(installos) and not(installing)]";
+        
 	while (1) {
 		$container_list = ve_api_request($server_ip, $server_username, $server_password, "vm", array());
-		$find_container = $container_list->xpath("/doc/elem[id='".$container_id."' and not(installos) and not(installing)]");
+		$find_container = $container_list->xpath($xpath_expr);
 		if (count($find_container) == 0) {
 			sleep(10);
 		} else {
