@@ -5,6 +5,7 @@ function ispmanager_MetaData(){
     return [
         'DisplayName' => 'ISPmanager',
         'RequiresServer' => true,
+        'AdminSingleSignOnLabel' => 'Login to ISPmanager',
     ];
 }
 
@@ -98,30 +99,6 @@ function ispmanager_ConfigOptions() {
             "Type" => "text",
             "Size" => "32",
             "Description" => "<br/><br/>@ID@ - service id<br/>@DOMAIN@ - domain name",
-        ],
-        "count_user" => [
-            "FriendlyName" => "Reseller users",
-            "Type" => "text",
-            "Size" => "8",
-            "Description" => "pcs",
-        ],
-        "tech_domains" => [
-            "FriendlyName" => "Reseller technical domains",
-            "Type" => "text",
-            "Size" => "8",
-            "Description" => "pcs",
-        ],
-        "ipv4_address" => [
-            "FriendlyName" => "Reseller IPv4 addresses",
-            "Type" => "text",
-            "Size" => "8",
-            "Description" => "pcs",
-        ],
-        "ipv6_address" => [
-            "FriendlyName" => "Reseller IPv6 addresses",
-            "Type" => "text",
-            "Size" => "8",
-            "Description" => "pcs",
         ],
     ];
 }
@@ -543,40 +520,33 @@ function ispmanager_ClientArea($params) {
 	return $code;
 }
 
-function ispmanager_AdminLink($params) {
-		global $op;
-		$op = "client area";
-		$code = "";
-		if ($_POST["process_ispmanager"] == "true" && $params["serverip"] == $_POST["process_ip"]) {
-				$server_ip = $params["serverip"];
-				$server_username = $params["serverusername"];
-				$server_password = $params["serverpassword"];
+function ispmanager_AdminSingleSignOn($params){
+    global $op;
+    $op = "auth";
+    
+    $server_ip = $params["serverip"];
+    $server_username = $params["serverusername"];
+    $server_password = $params["serverpassword"];
 
-				$key = md5(time()).md5($params["username"]);
-				$newkey = ispmgr_api_request($server_ip, $server_username, $server_password, "session.newkey", array("username" => $server_username,
-																													 "key" => $key));
-				$error = ispmgr_find_error($newkey);
-				if ($error != "") {
-						return $error;
-				}
+    try {
+        $key = md5(time()).md5($params["username"]);
+        $newkey = ispmgr_api_request($server_ip, $server_username, $server_password, "session.newkey", ["username" => $server_username, "key" => $key]);        
+        $error = ispmgr_find_error($newkey);
+        
+        if (!empty($error)) {
+             return  ['success' => false, 'errorMsg' => $error];
+        }
 
-				$code = "<form action='https://".$params["serverip"]."/ispmgr' method='post' name='isplogin'>
-						<input type='hidden' name='func' value='auth' />
-						<input type='hidden' name='username' value='".$server_username."' />
-						<input type='hidden' name='checkcookie' value='no' />
-						<input type='hidden' name='key' value='".$key."' />
-						<input type='submit' value='ISPmanager' class='button'/>
-						</form>
-						<script language='JavaScript'>document.isplogin.submit();</script>";
-		} else {
-				$code = "<form action='configservers.php' method='post' target='_blank'>
-						<input type='hidden' name='process_ispmanager' value='true' />
-						<input type='hidden' name='process_ip' value='".$params["serverip"]."' />
-						<input type='submit' value='ISPmanager' class='button'/>
-						</form>";
-		}
-
-    return $code;
+        return [
+            'success' => true,
+            'redirectTo' => "https://".$server_ip."/ispmgr?checkcookie=no&func=auth&username=".$server_username."&key=".$key,
+        ];
+    } catch (Exception $e) {
+         return [
+            'success' => false,
+            'errorMsg' => $e->getMessage(),
+        ];
+    }
 }
 
 ?>

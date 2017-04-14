@@ -5,6 +5,8 @@ function ispmanager_reseller_MetaData(){
     return [
         'DisplayName' => 'ISPmanager Reseller',
         'RequiresServer' => true,
+        'ServiceSingleSignOnLabel' => 'Login to ISPmanager',
+        'AdminSingleSignOnLabel' => 'Login to ISPmanager',
     ];
 }
 
@@ -379,38 +381,34 @@ function ispmanager_reseller_ClientArea($params) {
     return $code;
 }
 
-function ispmanager_reseller_AdminLink($params) {
-    global $op;
-    $op = "client area";
-    $code = "";
-    if ($_POST["process_ispmanager"] == "true" && $params["serverip"] == $_POST["process_ip"]) {
-        $server_ip = $params["serverip"];
-        $server_username = $params["serverusername"];
-        $server_password = $params["serverpassword"];
+function ispmanager_reseller_ServiceSingleSignOn($params){
+    $server_ip = $params["serverip"];
+    $server_username = $params["serverusername"];
+    $server_password = $params["serverpassword"];
 
+    try {
         $key = md5(time()).md5($params["username"]);
-        $newkey = isp_api_request($server_ip, $server_username, $server_password, "session.newkey", array("username" => $server_username,
-                                                                                                                                                                                                                 "key" => $key));
+        $newkey = isp_api_request($server_ip, $server_username, $server_password, "session.newkey", ["username" => $server_username, "key" => $key]);        
         $error = isp_find_error($newkey);
-        if (!empty($error)) return $error;
+        
+        if (!empty($error)) {
+             return  ['success' => false, 'errorMsg' => $error];
+        }
 
-        $code = "<form action='https://".$params["serverip"]."/ispmgr' method='post' name='isplogin'>
-                <input type='hidden' name='func' value='auth' />
-                <input type='hidden' name='username' value='".$server_username."' />
-                <input type='hidden' name='checkcookie' value='no' />
-                <input type='hidden' name='key' value='".$key."' />
-                <input type='submit' value='ISPmanager' class='button'/>
-                </form>
-                <script language='JavaScript'>document.isplogin.submit();</script>";
-    } else {
-        $code = "<form action='configservers.php' method='post' target='_blank'>
-                <input type='hidden' name='process_ispmanager' value='true' />
-                <input type='hidden' name='process_ip' value='".$params["serverip"]."' />
-                <input type='submit' value='ISPmanager' class='button'/>
-                </form>";
+        return [
+            'success' => true,
+            'redirectTo' => "https://".$server_ip."/ispmgr?checkcookie=no&func=auth&username=".$server_username."&key=".$key,
+        ];
+    } catch (Exception $e) {
+         return [
+            'success' => false,
+            'errorMsg' => $e->getMessage(),
+        ];
     }
+}
 
-    return $code;
+function ispmanager_reseller_AdminSingleSignOn($params){
+    return ispmanager_reseller_ServiceSingleSignOn($params);
 }
 
 ?>
