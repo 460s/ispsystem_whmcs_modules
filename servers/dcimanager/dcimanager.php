@@ -225,10 +225,19 @@ function dcimanager_CreateAccount($params) {
 		return "No server!";
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
-        //Если услуга не новая, задаем значение по умолчанию
-        $params["configoption3"] === "" ? $recipe = "null" : $recipe = $params["configoption3"];
+        $recipe = $params["configoption9"] === "" ? "null" : $params["configoption9"];
 
-	$service_username = $params["username"];
+        $user_data = DB::table('tblhosting')
+            ->join('tblorders', 'tblhosting.orderid', '=', 'tblorders.id')
+            ->select('username')
+            ->where([
+                ['tblhosting.userid',  $params["clientsdetails"]["userid"]],
+                ['tblhosting.server', $params["serverid"]],
+                ['tblorders.status', "Active"],
+            ])
+            ->first();    
+        $service_username = $user_data ? $user_data->username : $params["username"]; 
+        
 	$user_list = dci_api_request($server_ip, $server_username, $server_password, "user", array());
 	$find_user = $user_list->xpath("/doc/elem[level='16' and name='".$service_username."']");
 	$user_id = $find_user[0]->id;
@@ -569,11 +578,11 @@ function dcimanager_reinstall($params) {
 		        $os = ($params["configoptions"]["ostemplate"]);
 		}
 
-	    $server_ip = $params["serverip"];
-	    $server_username = $params["serverusername"];
-	    $server_password = $params["serverpassword"];
+                $server_ip = $params["serverip"];
+                $server_username = $params["serverusername"];
+                $server_password = $params["serverpassword"];
 
-		    $key = strtolower(dcimanager_generate_random_string(32));
+                $key = strtolower(dcimanager_generate_random_string(32));
 	        $newkey = dci_api_request($server_ip, $server_username, $server_password, "session.newkey", array("username" => $params["username"], "key" => $key));
 
 	        $error = dci_find_error($newkey);

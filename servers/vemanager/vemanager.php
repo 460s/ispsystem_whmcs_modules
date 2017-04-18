@@ -163,13 +163,7 @@ function ve_find_error($xml) {
 }
 
 
-function vemanager_CreateAccount($params) {
-	/*
-         *  Получить список пользователей
-	 * Создать пользователя
-	 * Создать контейнер         
-         */
-    
+function vemanager_CreateAccount($params) {  
 	global $op;
 	$op = "create";
 
@@ -178,10 +172,19 @@ function vemanager_CreateAccount($params) {
 		return "No server!";
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
-        //Если услуга не новая, задаем значение по умолчанию
-        $params["configoption12"] === "" ? $recipe = "null" : $recipe = $params["configoption12"];
+        $recipe = $params["configoption9"] === "" ? "null" : $params["configoption9"];
 
-	$service_username = $params["username"];
+        $user_data = DB::table('tblhosting')
+            ->join('tblorders', 'tblhosting.orderid', '=', 'tblorders.id')
+            ->select('username')
+            ->where([
+                ['tblhosting.userid',  $params["clientsdetails"]["userid"]],
+                ['tblhosting.server', $params["serverid"]],
+                ['tblorders.status', "Active"],
+            ])
+            ->first();    
+        $service_username = $user_data ? $user_data->username : $params["username"]; 
+        
 	$user_list = ve_api_request($server_ip, $server_username, $server_password, "user", array());
 	$find_user = $user_list->xpath("/doc/elem[level='16' and name='".$service_username."']");
 	$user_id = $find_user[0]->id;

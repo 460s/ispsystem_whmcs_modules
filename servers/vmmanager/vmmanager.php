@@ -170,152 +170,156 @@ function vm_find_error($xml) {
         return $error;
 }
 
-/* 
- * Получить список пользователей
- * Создать пользователя
- * Создать контейнер
- */
 function vmmanager_CreateAccount($params) {
-	global $op;
-	$op = "create";
+    global $op;
+    $op = "create";
 
-	$server_ip = $params["serverip"];
-	if ($server_ip == "")
-                return "No server!";
-	$server_username = $params["serverusername"];
-	$server_password = $params["serverpassword"];
-        //Если услуга не новая, задаем значение по умолчанию
-        $params["configoption9"] === "" ? $recipe = "null" : $recipe = $params["configoption9"];
+    $server_ip = $params["serverip"];
+    if ($server_ip == "")
+            return "No server!";
+    $server_username = $params["serverusername"];
+    $server_password = $params["serverpassword"];
+    $recipe = $params["configoption9"] === "" ? "null" : $params["configoption9"];
 
-	$service_username = $params["username"];
-	$user_list = vm_api_request($server_ip, $server_username, $server_password, "user", array());
-	$find_user = $user_list->xpath("/doc/elem[level='16' and name='".$service_username."']");
-	$user_id = $find_user[0]->id;
+    $user_data = DB::table('tblhosting')
+        ->join('tblorders', 'tblhosting.orderid', '=', 'tblorders.id')
+        ->select('username')
+        ->where([
+            ['tblhosting.userid',  $params["clientsdetails"]["userid"]],
+            ['tblhosting.server', $params["serverid"]],
+            ['tblorders.status', "Active"],
+        ])
+        ->first();    
+    $service_username = $user_data ? $user_data->username : $params["username"]; 
+  
+    $user_list = vm_api_request($server_ip, $server_username, $server_password, "user", array());
+    $find_user = $user_list->xpath("/doc/elem[level='16' and name='".$service_username."']");
+    $user_id = $find_user[0]->id;
 
-	if ($user_id == "") {
-		$user_create_param = [
-                    "sok" => "ok",
-                    "level" => "16",
-                    "name" => $service_username,
-                    "passwd" => $params["password"],
-                ];
+    if ($user_id == "") {
+            $user_create_param = [
+                "sok" => "ok",
+                "level" => "16",
+                "name" => $service_username,
+                "passwd" => $params["password"],
+            ];
 
-		$user_create = vm_api_request($server_ip, $server_username, $server_password, "user.edit", $user_create_param);
-		$user_id = $user_create->id;
+            $user_create = vm_api_request($server_ip, $server_username, $server_password, "user.edit", $user_create_param);
+            $user_id = $user_create->id;
 
-		if ($user_id == "")
-			return "Can not create user!";
-	}
+            if ($user_id == "")
+                    return "Can not create user!";
+    }
 
-	$preset_list = vm_api_request($server_ip, $server_username, $server_password, "preset", array());
-	$find_preset = $preset_list->xpath("/doc/elem[name='".$params["configoption1"]."']");
-	$preset_id = $find_preset[0]->id;
+    $preset_list = vm_api_request($server_ip, $server_username, $server_password, "preset", array());
+    $find_preset = $preset_list->xpath("/doc/elem[name='".$params["configoption1"]."']");
+    $preset_id = $find_preset[0]->id;
 
-	if ($preset_id == "")
-		return "Can not find preset!";
+    if ($preset_id == "")
+            return "Can not find preset!";
 
-	$vm_create_param = [
-            "mem" => $params["configoption4"],
-            "vcpu" => $params["configoption5"],
-            "cputune" => $params["configoption6"],
-            "vsize" => $params["configoption3"],
-            "vmi" => ($params["configoption2"]),
-            "preset" => $preset_id,
-            "family" => $params["configoption7"],
-            "user" => $user_id,
-            "hostnode" => "auto",
-            "iptype" => "public",
-            "sok" => "ok",
-            "password" => $params["password"],
-            "confirm" => $params["password"],
-            "domain" => $params["domain"],
-            "name" => "cont".$params["serviceid"],
-            "sshpubkey" => $params["configoption8"],
-            "recipe" => $recipe,
-        ];
+    $vm_create_param = [
+        "mem" => $params["configoption4"],
+        "vcpu" => $params["configoption5"],
+        "cputune" => $params["configoption6"],
+        "vsize" => $params["configoption3"],
+        "vmi" => ($params["configoption2"]),
+        "preset" => $preset_id,
+        "family" => $params["configoption7"],
+        "user" => $user_id,
+        "hostnode" => "auto",
+        "iptype" => "public",
+        "sok" => "ok",
+        "password" => $params["password"],
+        "confirm" => $params["password"],
+        "domain" => $params["domain"],
+        "name" => "cont".$params["serviceid"],
+        "sshpubkey" => $params["configoption8"],
+        "recipe" => $recipe,
+    ];
 
-	if (array_key_exists("os", $params["configoptions"])) 
-            $vm_create_param["vmi"] = ($params["configoptions"]["os"]);
-	if (array_key_exists("OS", $params["configoptions"])) 
-            $vm_create_param["vmi"] = ($params["configoptions"]["OS"]);
-	if (array_key_exists("ostemplate", $params["configoptions"])) 
-            $vm_create_param["vmi"] = ($params["configoptions"]["ostemplate"]);
-	if (array_key_exists("vmi", $params["configoptions"])) 
-            $vm_create_param["vmi"] = ($params["configoptions"]["vmi"]);       
-        if (array_key_exists("recipe", $params["configoptions"]))
-            $vm_create_param["recipe"] = $params["configoptions"]["recipe"];
-        
-	$ip_count = $params["configoption7"] == "ipv4" ? -1 : 0;
-	$ipv6_count = $params["configoption7"] == "ipv6" ? -1 : 0;
-	if (array_key_exists("IP", $params["configoptions"]))
-		$ip_count += $params["configoptions"]["IP"];
-	if (array_key_exists("IPv6", $params["configoptions"]))
-                $ipv6_count += $params["configoptions"]["IPv6"];
-      
-	$vm_create = vm_api_request($server_ip, $server_username, $server_password, "vm.edit", $vm_create_param);
+    if (array_key_exists("os", $params["configoptions"])) 
+        $vm_create_param["vmi"] = ($params["configoptions"]["os"]);
+    if (array_key_exists("OS", $params["configoptions"])) 
+        $vm_create_param["vmi"] = ($params["configoptions"]["OS"]);
+    if (array_key_exists("ostemplate", $params["configoptions"])) 
+        $vm_create_param["vmi"] = ($params["configoptions"]["ostemplate"]);
+    if (array_key_exists("vmi", $params["configoptions"])) 
+        $vm_create_param["vmi"] = ($params["configoptions"]["vmi"]);       
+    if (array_key_exists("recipe", $params["configoptions"]))
+        $vm_create_param["recipe"] = $params["configoptions"]["recipe"];
 
-	$error = vm_find_error($vm_create);
-	if ($error != "") {
-		return $error;
-	}
+    $ip_count = $params["configoption7"] == "ipv4" ? -1 : 0;
+    $ipv6_count = $params["configoption7"] == "ipv6" ? -1 : 0;
+    if (array_key_exists("IP", $params["configoptions"]))
+            $ip_count += $params["configoptions"]["IP"];
+    if (array_key_exists("IPv6", $params["configoptions"]))
+            $ipv6_count += $params["configoptions"]["IPv6"];
 
-	$vm_id = $vm_create->id;
+    $vm_create = vm_api_request($server_ip, $server_username, $server_password, "vm.edit", $vm_create_param);
 
-	if ($vm_id == "") {
-		return "Can not create vm!";
-	}
+    $error = vm_find_error($vm_create);
+    if ($error != "") {
+            return $error;
+    }
 
-	vm_save_external_id($params, $vm_id);
+    $vm_id = $vm_create->id;
 
-	$vm_ip = "0.0.0.0";
-        if ($params["configoption10"] == "on")  
-            $xpath_expr = "/doc/elem[id='".$vm_id."']";
-        else
-            $xpath_expr = "/doc/elem[id='".$vm_id."' and not(installos) and not(installing)]";
-        
-	while (1) {
-		$vm_list = vm_api_request($server_ip, $server_username, $server_password, "vm", array());
-		$find_vm = $vm_list->xpath($xpath_expr);
-		if (count($find_vm) == 0) {
-			sleep(30);
-		} else {
-			$vm_ip = $find_vm[0]->ip;
-			break;
-		}
-	}
+    if ($vm_id == "") {
+            return "Can not create vm!";
+    }
 
-	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['dedicatedip' => $vm_ip]);
+    vm_save_external_id($params, $vm_id);
 
-	$ip_list = "";
-	while ($ip_count > 0) {
-		$new_ip_param = array(
-					"plid" => $vm_id,
-					"domain" => $params["domain"],
-					"sok" => "ok",
-					"family" => "ipv4",
-					);
+    $vm_ip = "0.0.0.0";
+    if ($params["configoption10"] == "on")  
+        $xpath_expr = "/doc/elem[id='".$vm_id."']";
+    else
+        $xpath_expr = "/doc/elem[id='".$vm_id."' and not(installos) and not(installing)]";
 
-		$ip_add = vm_api_request($server_ip, $server_username, $server_password, "iplist.edit", $new_ip_param);
-		$ip_list .= $ip_add->ip."\n";
-		$ip_count--;
-	}
+    while (1) {
+            $vm_list = vm_api_request($server_ip, $server_username, $server_password, "vm", array());
+            $find_vm = $vm_list->xpath($xpath_expr);
+            if (count($find_vm) == 0) {
+                    sleep(30);
+            } else {
+                    $vm_ip = $find_vm[0]->ip;
+                    break;
+            }
+    }
 
-	while ($ipv6_count > 0) {
-                $new_ip_param = array(
-                                        "plid" => $vm_id,
-                                        "domain" => $params["domain"],
-                                        "sok" => "ok",
-                                        "family" => "ipv6",
-                                        );
+    DB::table('tblhosting')->where('id', $params["serviceid"])->update(['dedicatedip' => $vm_ip]);
 
-		$ip_add = vm_api_request($server_ip, $server_username, $server_password, "iplist.edit", $new_ip_param);
-		$ip_list .= $ip_add->ip."\n";
-		$ipv6_count--;
-        }
+    $ip_list = "";
+    while ($ip_count > 0) {
+            $new_ip_param = array(
+                                    "plid" => $vm_id,
+                                    "domain" => $params["domain"],
+                                    "sok" => "ok",
+                                    "family" => "ipv4",
+                                    );
 
-	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['assignedips' => $ip_list]);
+            $ip_add = vm_api_request($server_ip, $server_username, $server_password, "iplist.edit", $new_ip_param);
+            $ip_list .= $ip_add->ip."\n";
+            $ip_count--;
+    }
 
-	return "success";
+    while ($ipv6_count > 0) {
+            $new_ip_param = array(
+                                    "plid" => $vm_id,
+                                    "domain" => $params["domain"],
+                                    "sok" => "ok",
+                                    "family" => "ipv6",
+                                    );
+
+            $ip_add = vm_api_request($server_ip, $server_username, $server_password, "iplist.edit", $new_ip_param);
+            $ip_list .= $ip_add->ip."\n";
+            $ipv6_count--;
+    }
+
+    DB::table('tblhosting')->where('id', $params["serviceid"])->update(['assignedips' => $ip_list]);
+
+    return "success";
 }
 
 function vm_process_operation($func, $params) {
@@ -403,7 +407,11 @@ function vmmanager_ChangePackage($params) {
 }
 
 function vmmanager_ClientAreaCustomButtonArray() {
-    return ["Reboot Server" => "reboot"];
+    return [
+        "Reboot Server" => "reboot",
+        "Stop Server" => "poweroff",
+        "Start Server" => "poweron",
+    ];
 }
 
 function vmmanager_AdminCustomButtonArray() {
@@ -414,6 +422,18 @@ function vmmanager_reboot($params) {
 	global $op;
 	$op = "reboot";
 	return vm_process_operation("vm.restart", $params);
+}
+
+function vmmanager_poweroff($params) {
+	global $op;
+	$op = "stop";
+	return vm_process_operation("vm.stop", $params);
+}
+
+function vmmanager_poweron($params) {
+	global $op;
+	$op = "start";
+	return vm_process_operation("vm.start", $params);
 }
 
 /*
