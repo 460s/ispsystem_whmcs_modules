@@ -223,7 +223,7 @@ function vmmanager_CreateAccount($params) {
         "vcpu" => $params["configoption5"],
         "cputune" => $params["configoption6"],
         "vsize" => $params["configoption3"],
-        "vmi" => ($params["configoption2"]),
+        "vmi" => $params["configoption2"],
         "preset" => $preset_id,
         "family" => $params["configoption7"],
         "user" => $user_id,
@@ -411,29 +411,75 @@ function vmmanager_ClientAreaCustomButtonArray() {
         "Reboot Server" => "reboot",
         "Stop Server" => "poweroff",
         "Start Server" => "poweron",
+        "Reinstall Server" => "reinstall",
     ];
 }
 
 function vmmanager_AdminCustomButtonArray() {
-	return vmmanager_ClientAreaCustomButtonArray();
+    return vmmanager_ClientAreaCustomButtonArray();
 }
 
 function vmmanager_reboot($params) {
-	global $op;
-	$op = "reboot";
-	return vm_process_operation("vm.restart", $params);
+    global $op;
+    $op = "reboot";
+    return vm_process_operation("vm.restart", $params);
 }
 
 function vmmanager_poweroff($params) {
-	global $op;
-	$op = "stop";
-	return vm_process_operation("vm.stop", $params);
+    global $op;
+    $op = "stop";
+    return vm_process_operation("vm.stop", $params);
 }
 
 function vmmanager_poweron($params) {
-	global $op;
-	$op = "start";
-	return vm_process_operation("vm.start", $params);
+    global $op;
+    $op = "start";
+    return vm_process_operation("vm.start", $params);
+}
+
+function vmmanager_reinstall($params) {
+    global $op;
+    $op = "reinstall";
+
+    if ($_POST["reinstallation"] == "on") {
+        $server_ip = $params["serverip"];
+        $server_username = $params["serverusername"];
+        $server_password = $params["serverpassword"];
+
+        $vm_param = [
+            "elid" => vm_get_external_id($params),
+            "vmi" => $params["configoption2"],
+            "sok" => "ok",
+            "password" => $params["password"],
+            "confirm" => $params["password"],
+            "recipe" => "null",
+        ];
+        
+        if(!empty($_POST["passwd"])){
+            $vm_param["new_password"] = "on";
+            $vm_param["password"] = $_POST["passwd"];
+            $vm_param["confirm"] = $_POST["passwd"];            
+        } else {
+            $vm_param["new_password"] = "off";
+        }
+        if (array_key_exists("os", $params["configoptions"])) 
+            $vm_param["vmi"] = ($params["configoptions"]["os"]);
+        if (array_key_exists("OS", $params["configoptions"])) 
+            $vm_param["vmi"] = ($params["configoptions"]["OS"]);
+        if (array_key_exists("ostemplate", $params["configoptions"])) 
+            $vm_param["vmi"] = ($params["configoptions"]["ostemplate"]);
+        if (array_key_exists("vmi", $params["configoptions"])) 
+            $vm_param["vmi"] = ($params["configoptions"]["vmi"]);       
+        if (array_key_exists("recipe", $params["configoptions"]))
+            $vm_param["recipe"] = $params["configoptions"]["recipe"];
+
+        $result = vm_api_request($server_ip, $server_username, $server_password, "vm.reinstall", $vm_param);
+        $error = vm_find_error($result);
+
+        return !empty($error) ? $error : "success";;
+    } else {
+            return ['templatefile' => 'os'];
+    }
 }
 
 /*
