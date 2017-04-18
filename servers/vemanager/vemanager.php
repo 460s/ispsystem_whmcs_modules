@@ -172,7 +172,7 @@ function vemanager_CreateAccount($params) {
 		return "No server!";
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
-        $recipe = $params["configoption9"] === "" ? "null" : $params["configoption9"];
+        $recipe = $params["configoption12"] === "" ? "null" : $params["configoption12"];
 
         $user_data = DB::table('tblhosting')
             ->join('tblorders', 'tblhosting.orderid', '=', 'tblorders.id')
@@ -355,7 +355,7 @@ function vemanager_SuspendAccount($params) {
 
 function vemanager_UnsuspendAccount($params) {
 	global $op;
-	$op = "unsusoend";
+	$op = "unsuspend";
 	return ve_process_operation("vm.start", $params);
 }
 
@@ -447,11 +447,12 @@ function vemanager_ChangePackage($params) {
 }
 
 function vemanager_ClientAreaCustomButtonArray() {
-	$button_array = array(
-				"Reboot Server" => "reboot",
-			);
-
-	return $button_array;
+    return [
+        "Reboot Server" => "reboot",
+        "Stop Server" => "poweroff",
+        "Start Server" => "poweron",
+        "Reinstall Server" => "reinstall",
+    ];
 }
 
 function vemanager_AdminCustomButtonArray() {
@@ -462,6 +463,61 @@ function vemanager_reboot($params) {
 	global $op;
 	$op = "reboot";
 	return ve_process_operation("vm.restart", $params);
+}
+
+function vemanager_poweroff($params) {
+	global $op;
+	$op = "stop";
+	return ve_process_operation("vm.stop", $params);
+}
+
+function vemanager_poweron($params) {
+	global $op;
+	$op = "start";
+	return ve_process_operation("vm.start", $params);
+}
+
+function vemanager_reinstall($params) {
+    global $op;
+    $op = "reinstall";
+
+    if ($_POST["reinstallation"] == "on") {
+        $server_ip = $params["serverip"];
+        $server_username = $params["serverusername"];
+        $server_password = $params["serverpassword"];
+
+        $vm_param = [
+            "elid" => ve_get_external_id($params),
+            "ostemplate" => $params["configoption2"],
+            "sok" => "ok",
+            "password" => $params["password"],
+            "confirm" => $params["password"],
+            "recipe" => "null",
+        ];
+        
+        if(!empty($_POST["passwd"])){
+            $vm_param["new_password"] = "on";
+            $vm_param["password"] = $_POST["passwd"];
+            $vm_param["confirm"] = $_POST["passwd"];            
+        } else {
+            $vm_param["new_password"] = "off";
+        }
+        if (array_key_exists("os", $params["configoptions"])) 
+            $vm_param["ostemplate"] = ($params["configoptions"]["os"]);
+        if (array_key_exists("OS", $params["configoptions"])) 
+            $vm_param["ostemplate"] = ($params["configoptions"]["OS"]);
+        if (array_key_exists("ostemplate", $params["configoptions"])) 
+            $vm_param["ostemplate"] = ($params["configoptions"]["ostemplate"]);      
+        if (array_key_exists("recipe", $params["configoptions"]))
+            $vm_param["recipe"] = $params["configoptions"]["recipe"];
+
+        $result = ve_api_request($server_ip, $server_username, $server_password, "vm.reinstall", $vm_param);
+        $error = ve_find_error($result);
+
+        return !empty($error) ? $error : "success";;
+    } else {
+            return ['templatefile' => 'os'];
+    }
 }
 
 function vemanager_ClientArea($params) {

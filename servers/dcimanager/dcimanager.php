@@ -225,7 +225,7 @@ function dcimanager_CreateAccount($params) {
 		return "No server!";
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
-        $recipe = $params["configoption9"] === "" ? "null" : $params["configoption9"];
+        $recipe = $params["configoption3"] === "" ? "null" : $params["configoption3"];
 
         $user_data = DB::table('tblhosting')
             ->join('tblorders', 'tblhosting.orderid', '=', 'tblorders.id')
