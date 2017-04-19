@@ -206,7 +206,7 @@ function billmanager_noc_LicenseUnSuspend($params,$license_id){
 	$suspend_request = billmanager_noc_api_request($params["serverhostname"],$params["serverusername"],$params["serverpassword"],'soft.resume',array("elid"=>$license_id));
 	$error = billmanager_noc_find_error($suspend_request);
 	if ($error != "") return $error;
-
+        
 	return 'success';
 }
 
@@ -216,9 +216,10 @@ function billmanager_noc_LicenseUnSuspend($params,$license_id){
 
 // Название модуля
 function billmanager_noc_MetaData(){
-	return array(
-		'DisplayName' => 'BILLmanager NOC'
-	);
+    return [
+        'DisplayName' => 'BILLmanager NOC',
+        'AdminSingleSignOnLabel' => 'Login to BILLmanager',
+    ];
 }
 
 // Дополнительные поля для модуля
@@ -332,7 +333,12 @@ function billmanager_noc_UnSuspendAccount($params){
 		if ($prolong_answer["answer"] != 'success') return $prolong_answer["answer"];
 
 		// Обновим дату в базе
-		DB::table('ispsystem_noc')->where('licenseid', $license_id)->update(['duedate' => $prolong_answer['duedate']]);
+                DB::table('ispsystem_noc')->where('licenseid', $license_id)->update(['duedate' => $prolong_answer['duedate']]);
+                DB::table('tblhosting')->where('id', $params["serviceid"])
+                    ->update([
+                        'nextduedate' => $prolong_answer['duedate'],
+                        'nextinvoicedate' => $prolong_answer['duedate'],
+                    ]);
 
 		// Запросим ключ лицензии
 		$answer = billmanager_noc_get_param($params,$license_id);
@@ -446,3 +452,34 @@ function billmanager_noc_AdminCustomButtonArray() {
 
 	return $button_array;
 }
+
+function billmanager_noc_AdminSingleSignOn($params){
+    global $op;
+    $op = "auth";
+
+    $server_ip = $params["serverhostname"];
+    $server_username = $params["serverusername"];
+    $server_password = $params["serverpassword"];
+
+    try {
+        $key = md5(time()).md5($params["username"]);
+        $newkey = billmanager_noc_api_request($server_ip, $server_username, $server_password, "session.newkey", ["username" => $server_username, "key" => $key]);        
+        $error = billmanager_noc_find_error($newkey);
+        
+        if (!empty($error)) {
+             return  ['success' => false, 'errorMsg' => $error];
+        }
+
+        return [
+            'success' => true,
+            'redirectTo' => "https://my.ispsystem.com/billmgr?checkcookie=no&func=auth&username=".$server_username."&key=".$key,
+        ];
+    } catch (Exception $e) {
+         return [
+            'success' => false,
+            'errorMsg' => $e->getMessage(),
+        ];
+    }
+}
+
+?>
