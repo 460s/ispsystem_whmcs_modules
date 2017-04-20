@@ -1,5 +1,6 @@
 <?php
 use WHMCS\Database\Capsule as DB;
+require_once 'lib/server.php';
 
 function dcimanager_MetaData(){
     return [
@@ -30,7 +31,7 @@ function dcimanager_ConfigOptions() {
         ],
         "waiter" => [
             "FriendlyName" => "Dont wait the OS install",
-            "Type" => "yesno", 
+            "Type" => "yesno",
             "Description" => "Activate service without waiting for the OS installation",
         ],
     ];
@@ -128,7 +129,7 @@ function dci_api_request4($ip, $auth, $func, $param) {
 	return $out;
 }
 
-function dci_api_request($ip, $username, $password, $func, $param) {
+function dci_api_request($ip, $username, $password, $func, $param = []) {
 	global $op;
 
 	$default_xml_string = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<doc/>\n";
@@ -145,9 +146,9 @@ function dci_api_request($ip, $username, $password, $func, $param) {
 
 	logModuleCall("dcimanager:".$func, $op, array_merge($postfields, $param), $response, $response, array ($password));
 
-	$out = simplexml_load_string($default_xml_string);
+        $out = simplexml_load_string($default_xml_string);
 
-	try {
+        try {
 		$out = new SimpleXMLElement($response);
 	} catch (Exception $e) {
 		$out = simplexml_load_string($default_xml_error_string);
@@ -235,9 +236,9 @@ function dcimanager_CreateAccount($params) {
                 ['tblhosting.server', $params["serverid"]],
                 ['tblorders.status', "Active"],
             ])
-            ->first();    
-        $service_username = $user_data ? $user_data->username : $params["username"]; 
-        
+            ->first();
+        $service_username = $user_data ? $user_data->username : $params["username"];
+
 	$user_list = dci_api_request($server_ip, $server_username, $server_password, "user", array());
 	$find_user = $user_list->xpath("/doc/elem[level='16' and name='".$service_username."']");
 	$user_id = $find_user[0]->id;
@@ -253,7 +254,7 @@ function dcimanager_CreateAccount($params) {
             ])
             ->select('tbladmins.username')
             ->first();
-        if (!$admin_data) return "Admin user not found!";        
+        if (!$admin_data) return "Admin user not found!";
 	$pwd_results = localAPI("encryptpassword", array("password2" => $password), $admin_data->username);
 	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['password' => $pwd_results["password"]]);
 
@@ -357,8 +358,8 @@ function dcimanager_CreateAccount($params) {
 
 	$dci_ip = "0.0.0.0";
 	$wait_time = 0;
-        
-        if ($params["configoption4"] == "on")  
+
+        if ($params["configoption4"] == "on")
             $xpath_expr = "/doc/elem[id='".$server_id."' and not(operation_failed)]";
         else
             $xpath_expr = "/doc/elem[id='".$server_id."' and not(install_in_progress) and not(operation_failed)]";
@@ -426,23 +427,48 @@ function dcimanager_CreateAccount($params) {
 }
 
 function dci_process_operation($func, $params) {
-	$id = dci_get_external_id($params);
-    if ($id == "") {
-            return "Unknown server!";
-    }
+    $id = dci_get_external_id($params);
+    if (empty($id)) return "Unknown server!";
 
-    $server_ip = $params["serverip"];
-    $server_username = $params["serverusername"];
-    $server_password = $params["serverpassword"];
-
-    $result = dci_api_request($server_ip, $server_username, $server_password, $func, array("elid" => $id));
+    $result = dci_api_request($params["serverip"], $params["serverusername"], $params["serverpassword"], $func, ["elid" => $id]);
     $error = dci_find_error($result);
 
-    if ($error != "") {
-            return "Error";
-    }
+    return !empty($error) ? $error : "success";
+}
+/*
+ * Проверяет наличие элемента в списке серверов,
+ * соответствующего заданному фильтру.
+ * @var $filter массив параметров для xpath
+ * @vsr $params массив параметров текущей услуги
+ */
+function dci_HasItems($filter, $params) {
+    $server = new dci\Server($params);
+    $serverXml = $server->apiRequest("server");
 
-    return "success";
+    $xp = "/doc/elem";
+    foreach ($filter as $key => $val){
+        if(substr($key, -1) === "/")
+           $fstr .= "(".($val === "TRUE" ? "" : "not")."(".substr($key, 0, -1)."))";
+        else
+            $fstr .= "(".$key."='".$val."')";
+        if(next($filter)) $fstr.= " and ";
+    }
+    $xp.= "[".$fstr."]";
+    $findItem = $serverXml->xpath($xp);
+
+    logModuleCall("dcimanager", "xpath", $xp, $findItem, $findItem);
+
+    return count($findItem) > 0;
+}
+
+function dci_Waiter($func, $filter, $param, $num) {
+    while ($num) {
+        if ($func($filter, $param))
+            return true;
+        sleep(5);
+        $num--;
+    }
+    return false;
 }
 
 function dci_process_client_operation($func, $params) {
@@ -481,34 +507,36 @@ function dci_process_client_operation($func, $params) {
 function dcimanager_TerminateAccount($params) {
 	global $op;
 	$op = "terminate";
+        $server = new dci\Server($params);
 
 	$id = dci_get_external_id($params);
-	if ($id == "") {
-                return "Unknown server!";
-        }
+	if (empty($id)) return "Unknown server!";
 
 	dci_process_operation("server.enable", $params);
-	sleep(5); 
-        
-	if (dci_find_error(dci_process_operation("server.poweroff", $params)) != "")
-		return "Can not turn off";
+        $filter_en = [
+            "id" => $id,
+            "disabled/" => "FALSE",
+            "poweroff/" => "FALSE",
+          ];
+        if (!dci_Waiter("dci_HasItems", $filter_en, $params, 6)) return "Can not enable server".$id;
 
-	$server_ip = $params["serverip"];
-        $server_username = $params["serverusername"];
-        $server_password = $params["serverpassword"];
+	dci_process_operation("server.poweroff", $params);
+        $filter_off = [
+            "id" => $id,
+            "poweroff or powererror/" => "TRUE",
+        ];
+        if (!dci_Waiter("dci_HasItems", $filter_off, $params, 6)) return "Can not poweroff server".$id;
 
-	$server_list = dci_api_request($server_ip, $server_username, $server_password, "server", array());
+        $server_list = $server->apiRequest("server");
 	$main_ip_x = $server_list->xpath("/doc/elem[id='".$id."']");
 	$main_ip = $main_ip_x[0]->ip;
+	if ($main_ip == "") return "Can not get main ip!";
 
-	if ($main_ip == "")
-		return "Can not get main ip!";
-
-	$server_ip_list = dci_api_request($server_ip, $server_username, $server_password, "iplist", array("elid" => $id));
+        $server_ip_list = $server->apiRequest("iplist", ["elid" => $id]);
 	$ip_list = $server_ip_list->xpath("//elem[(not(type) or type != 'group') and ip != '".$main_ip."']/id");
 
 	while(list( , $ip_id) = each($ip_list)) {
-		dci_api_request($server_ip, $server_username, $server_password, "iplist.delete", array("elid" => (string)$ip_id, "plid" => $id));
+            $server->apiRequest("iplist.delete", ["elid" => $ip_id, "plid" => $id]);
 	}
 
 	if (dci_find_error(dci_set_server_owner($params, $id, "no_owner")) != "")
@@ -537,11 +565,11 @@ function dcimanager_ChangePackage($params) {
 }
 
 function dcimanager_ClientArea($params) {
-    if ($_POST["process"] == "true") {               
+    if ($_POST["process"] == "true") {
         $auth = dcimanager_ServiceSingleSignOn($params);
-        header("Location: ".$auth["redirectTo"]);                
-        exit;                 
-    } 
+        header("Location: ".$auth["redirectTo"]);
+        exit;
+    }
 }
 
 function dcimanager_ClientAreaCustomButtonArray() {
