@@ -65,7 +65,7 @@ function vmmanager_ConfigOptions() {
         ],
         "waiter" => [
             "FriendlyName" => "Dont wait the OS install",
-            "Type" => "yesno", 
+            "Type" => "yesno",
             "Description" => "Activate service without waiting for the OS installation",
         ],
     ];
@@ -117,7 +117,7 @@ function vm_api_request($ip, $username, $password, $func, $param) {
 	foreach ($param as $key => &$value) {
 		$value = (string)$value;
 	}
-        
+
 	$response = curlCall($url, array_merge($postfields, $param), $options);
 	logModuleCall("VMmanager:".$func, $op, array_merge($postfields, $param), $response, $response, array ($password));
 
@@ -170,6 +170,34 @@ function vm_find_error($xml) {
         return $error;
 }
 
+function vm_encript_password($pass, $func='EncryptPassword') {
+    $admin_data = DB::table('tbladmins')
+        ->leftJoin('tbladminperms', 'tbladmins.roleid', '=', 'tbladminperms.roleid')
+        ->where([
+            ['tbladmins.disabled', '=', 0],
+            ['tbladminperms.permid', '=', 81],
+        ])
+        ->select('tbladmins.username')
+        ->first();
+    $pass_data = localAPI($func, array("password2" => $pass), $admin_data->username);
+    logModuleCall("vmmanager:vm", $func, $pass, $pass_data['result']);
+
+    return $pass_data['result'] === 'success' ? $pass_data['password'] : "";
+}
+
+function vm_decrypt_password($pass) {
+    return vm_encript_password($pass, 'DecryptPassword');
+}
+
+function vm_random_string($length = 12) {
+    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $randomString = '';
+    for ($i = 0; $i < $length; $i++) {
+        $randomString .= $characters[rand(0, strlen($characters) - 1)];
+    }
+    return $randomString;
+}
+
 function vmmanager_CreateAccount($params) {
     global $op;
     $op = "create";
@@ -183,15 +211,33 @@ function vmmanager_CreateAccount($params) {
 
     $user_data = DB::table('tblhosting')
         ->join('tblorders', 'tblhosting.orderid', '=', 'tblorders.id')
-        ->select('username')
+        ->select('username','password')
         ->where([
             ['tblhosting.userid',  $params["clientsdetails"]["userid"]],
             ['tblhosting.server', $params["serverid"]],
             ['tblorders.status', "Active"],
         ])
-        ->first();    
-    $service_username = $user_data ? $user_data->username : $params["username"]; 
-  
+        ->first();
+
+    if ($user_data){
+        $service_username = $user_data->username;
+        $password = vm_decrypt_password($user_data->password);
+        logModuleCall("vmmanager:vm", $password, $password, $password);
+        if(empty($password)) return "cant decrypt password";
+        DB::table('tblhosting')
+            ->where('id', $params["serviceid"])
+            ->update([
+                'username' => $service_username,
+                'password' => $user_data->password,
+            ]);
+    }else{
+        $service_username = $params["username"];
+        $password = vm_random_string();
+        $encript_pass = vm_encript_password($password);
+        if(empty($password)) return "cant encrypt password";
+        DB::table('tblhosting')->where('id', $params["serviceid"])->update(['password' => $encript_pass]);
+    }
+
     $user_list = vm_api_request($server_ip, $server_username, $server_password, "user", array());
     $find_user = $user_list->xpath("/doc/elem[level='16' and name='".$service_username."']");
     $user_id = $find_user[0]->id;
@@ -201,7 +247,7 @@ function vmmanager_CreateAccount($params) {
                 "sok" => "ok",
                 "level" => "16",
                 "name" => $service_username,
-                "passwd" => $params["password"],
+                "passwd" => $password,
             ];
 
             $user_create = vm_api_request($server_ip, $server_username, $server_password, "user.edit", $user_create_param);
@@ -230,22 +276,22 @@ function vmmanager_CreateAccount($params) {
         "hostnode" => "auto",
         "iptype" => "public",
         "sok" => "ok",
-        "password" => $params["password"],
-        "confirm" => $params["password"],
+        "password" => $password,
+        "confirm" => $password,
         "domain" => $params["domain"],
         "name" => "cont".$params["serviceid"],
         "sshpubkey" => $params["configoption8"],
         "recipe" => $recipe,
     ];
 
-    if (array_key_exists("os", $params["configoptions"])) 
+    if (array_key_exists("os", $params["configoptions"]))
         $vm_create_param["vmi"] = ($params["configoptions"]["os"]);
-    if (array_key_exists("OS", $params["configoptions"])) 
+    if (array_key_exists("OS", $params["configoptions"]))
         $vm_create_param["vmi"] = ($params["configoptions"]["OS"]);
-    if (array_key_exists("ostemplate", $params["configoptions"])) 
+    if (array_key_exists("ostemplate", $params["configoptions"]))
         $vm_create_param["vmi"] = ($params["configoptions"]["ostemplate"]);
-    if (array_key_exists("vmi", $params["configoptions"])) 
-        $vm_create_param["vmi"] = ($params["configoptions"]["vmi"]);       
+    if (array_key_exists("vmi", $params["configoptions"]))
+        $vm_create_param["vmi"] = ($params["configoptions"]["vmi"]);
     if (array_key_exists("recipe", $params["configoptions"]))
         $vm_create_param["recipe"] = $params["configoptions"]["recipe"];
 
@@ -272,7 +318,7 @@ function vmmanager_CreateAccount($params) {
     vm_save_external_id($params, $vm_id);
 
     $vm_ip = "0.0.0.0";
-    if ($params["configoption10"] == "on")  
+    if ($params["configoption10"] == "on")
         $xpath_expr = "/doc/elem[id='".$vm_id."']";
     else
         $xpath_expr = "/doc/elem[id='".$vm_id."' and not(installos) and not(installing)]";
@@ -454,22 +500,22 @@ function vmmanager_reinstall($params) {
             "confirm" => $params["password"],
             "recipe" => "null",
         ];
-        
+
         if(!empty($_POST["passwd"])){
             $vm_param["new_password"] = "on";
             $vm_param["password"] = $_POST["passwd"];
-            $vm_param["confirm"] = $_POST["passwd"];            
+            $vm_param["confirm"] = $_POST["passwd"];
         } else {
             $vm_param["new_password"] = "off";
         }
-        if (array_key_exists("os", $params["configoptions"])) 
+        if (array_key_exists("os", $params["configoptions"]))
             $vm_param["vmi"] = ($params["configoptions"]["os"]);
-        if (array_key_exists("OS", $params["configoptions"])) 
+        if (array_key_exists("OS", $params["configoptions"]))
             $vm_param["vmi"] = ($params["configoptions"]["OS"]);
-        if (array_key_exists("ostemplate", $params["configoptions"])) 
+        if (array_key_exists("ostemplate", $params["configoptions"]))
             $vm_param["vmi"] = ($params["configoptions"]["ostemplate"]);
-        if (array_key_exists("vmi", $params["configoptions"])) 
-            $vm_param["vmi"] = ($params["configoptions"]["vmi"]);       
+        if (array_key_exists("vmi", $params["configoptions"]))
+            $vm_param["vmi"] = ($params["configoptions"]["vmi"]);
         if (array_key_exists("recipe", $params["configoptions"]))
             $vm_param["recipe"] = $params["configoptions"]["recipe"];
 
@@ -491,17 +537,17 @@ function vmmanager_ClientArea($params) {
 	global $op;
 	$op = "client area";
 
-	if ($_POST["process_vmmanager"] == "true") {               
+	if ($_POST["process_vmmanager"] == "true") {
                 $authinfo = vm_request($params["serverip"], "auth", array("username" => $params["username"], "password" => $params["password"]));
                 $auth_id = $authinfo->auth;
-                
+
                 if (isset($_POST["novnc"])){
                     $elid = vm_get_external_id($params);
                     $args = "&func=vm.novnc&newwindow=yes&elid=".$elid;
                 }
 
-                header("Location: https://".$params["serverip"]."/vmmgr?auth=".$auth_id.$args);                
-                exit;               
+                header("Location: https://".$params["serverip"]."/vmmgr?auth=".$auth_id.$args);
+                exit;
 	} else {
 		$code = "<form action='clientarea.php' method='post' target='_blank'>
 			<input type='hidden' name='action' value='productdetails' />
@@ -569,16 +615,16 @@ function vmmanager_UsageUpdate($params) {
 function vmmanager_AdminSingleSignOn($params){
     global $op;
     $op = "auth";
-    
+
     $server_ip = $params["serverip"];
     $server_username = $params["serverusername"];
     $server_password = $params["serverpassword"];
 
     try {
         $key = md5(time()).md5($params["username"]);
-        $newkey = vm_api_request($server_ip, $server_username, $server_password, "session.newkey", ["username" => $server_username, "key" => $key]);        
+        $newkey = vm_api_request($server_ip, $server_username, $server_password, "session.newkey", ["username" => $server_username, "key" => $key]);
         $error = vm_find_error($newkey);
-        
+
         if (!empty($error)) {
              return  ['success' => false, 'errorMsg' => $error];
         }

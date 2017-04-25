@@ -84,7 +84,7 @@ function vemanager_ConfigOptions() {
         ],
         "waiter" => [
             "FriendlyName" => "Dont wait the OS install",
-            "Type" => "yesno", 
+            "Type" => "yesno",
             "Description" => "Activate service without waiting for the OS installation",
         ],
     ];
@@ -162,8 +162,35 @@ function ve_find_error($xml) {
         return $error;
 }
 
+function ve_encript_password($pass, $func='EncryptPassword') {
+    $admin_data = DB::table('tbladmins')
+        ->leftJoin('tbladminperms', 'tbladmins.roleid', '=', 'tbladminperms.roleid')
+        ->where([
+            ['tbladmins.disabled', '=', 0],
+            ['tbladminperms.permid', '=', 81],
+        ])
+        ->select('tbladmins.username')
+        ->first();
+    $pass_data = localAPI($func, array("password2" => $pass), $admin_data->username);
+    logModuleCall("vmmanager:vm", $func, $pass, $pass_data['result']);
 
-function vemanager_CreateAccount($params) {  
+    return $pass_data['result'] === 'success' ? $pass_data['password'] : "";
+}
+
+function ve_decrypt_password($pass) {
+    return ve_encript_password($pass, 'DecryptPassword');
+}
+
+function ve_random_string($length = 12) {
+    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $randomString = '';
+    for ($i = 0; $i < $length; $i++) {
+        $randomString .= $characters[rand(0, strlen($characters) - 1)];
+    }
+    return $randomString;
+}
+
+function vemanager_CreateAccount($params) {
 	global $op;
 	$op = "create";
 
@@ -176,15 +203,33 @@ function vemanager_CreateAccount($params) {
 
         $user_data = DB::table('tblhosting')
             ->join('tblorders', 'tblhosting.orderid', '=', 'tblorders.id')
-            ->select('username')
+            ->select('username','password')
             ->where([
                 ['tblhosting.userid',  $params["clientsdetails"]["userid"]],
                 ['tblhosting.server', $params["serverid"]],
                 ['tblorders.status', "Active"],
             ])
-            ->first();    
-        $service_username = $user_data ? $user_data->username : $params["username"]; 
-        
+            ->first();
+
+        if ($user_data){
+            $service_username = $user_data->username;
+            $password = ve_decrypt_password($user_data->password);
+            logModuleCall("vmmanager:vm", $password, $password, $password);
+            if(empty($password)) return "cant decrypt password";
+            DB::table('tblhosting')
+                ->where('id', $params["serviceid"])
+                ->update([
+                    'username' => $service_username,
+                    'password' => $user_data->password,
+                ]);
+        }else{
+            $service_username = $params["username"];
+            $password = ve_random_string();
+            $encript_pass = ve_encript_password($password);
+            if(empty($password)) return "cant encrypt password";
+            DB::table('tblhosting')->where('id', $params["serviceid"])->update(['password' => $encript_pass]);
+        }
+
 	$user_list = ve_api_request($server_ip, $server_username, $server_password, "user", array());
 	$find_user = $user_list->xpath("/doc/elem[level='16' and name='".$service_username."']");
 	$user_id = $find_user[0]->id;
@@ -194,7 +239,7 @@ function vemanager_CreateAccount($params) {
 						"sok" => "ok",
 						"level" => "16",
 						"name" => $service_username,
-						"passwd" => $params["password"],
+						"passwd" => $password,
 						);
 
 		$user_create = ve_api_request($server_ip, $server_username, $server_password, "user.edit", $user_create_param);
@@ -226,8 +271,8 @@ function vemanager_CreateAccount($params) {
             "hostnode" => "auto",
             "iptype" => "public",
             "sok" => "ok",
-            "password" => $params["password"],
-            "confirm" => $params["password"],
+            "password" => $password,
+            "confirm" => $password,
             "domain" => $params["domain"],
             "name" => "cont".$params["serviceid"],
             "sshpubkey" => $params["configoption11"],
@@ -242,7 +287,7 @@ function vemanager_CreateAccount($params) {
             $container_create_param["ostemplate"] = strtolower($params["configoptions"]["ostemplate"]);
         if (array_key_exists("recipe", $params["configoptions"]))
             $container_create_param["recipe"] = $params["configoptions"]["recipe"];
- 
+
 	$ip_count = $params["configoption10"] == "ipv4" ? -1 : 0;
 	$ipv6_count = $params["configoption10"] == "ipv6" ? -1 : 0;
 
@@ -271,11 +316,11 @@ function vemanager_CreateAccount($params) {
 
 	$installed = false;
 	$container_ip = "0.0.0.0";
-        if ($params["configoption13"] == "on")  
+        if ($params["configoption13"] == "on")
             $xpath_expr = "/doc/elem[id='".$container_id."']";
         else
             $xpath_expr = "/doc/elem[id='".$container_id."' and not(installos) and not(installing)]";
-        
+
 	while (1) {
 		$container_list = ve_api_request($server_ip, $server_username, $server_password, "vm", array());
 		$find_container = $container_list->xpath($xpath_expr);
@@ -494,20 +539,20 @@ function vemanager_reinstall($params) {
             "confirm" => $params["password"],
             "recipe" => "null",
         ];
-        
+
         if(!empty($_POST["passwd"])){
             $vm_param["new_password"] = "on";
             $vm_param["password"] = $_POST["passwd"];
-            $vm_param["confirm"] = $_POST["passwd"];            
+            $vm_param["confirm"] = $_POST["passwd"];
         } else {
             $vm_param["new_password"] = "off";
         }
-        if (array_key_exists("os", $params["configoptions"])) 
+        if (array_key_exists("os", $params["configoptions"]))
             $vm_param["ostemplate"] = ($params["configoptions"]["os"]);
-        if (array_key_exists("OS", $params["configoptions"])) 
+        if (array_key_exists("OS", $params["configoptions"]))
             $vm_param["ostemplate"] = ($params["configoptions"]["OS"]);
-        if (array_key_exists("ostemplate", $params["configoptions"])) 
-            $vm_param["ostemplate"] = ($params["configoptions"]["ostemplate"]);      
+        if (array_key_exists("ostemplate", $params["configoptions"]))
+            $vm_param["ostemplate"] = ($params["configoptions"]["ostemplate"]);
         if (array_key_exists("recipe", $params["configoptions"]))
             $vm_param["recipe"] = $params["configoptions"]["recipe"];
 
@@ -636,16 +681,16 @@ function vemanager_UsageUpdate($params) {
 function vemanager_AdminSingleSignOn($params){
     global $op;
     $op = "auth";
-    
+
     $server_ip = $params["serverip"];
     $server_username = $params["serverusername"];
     $server_password = $params["serverpassword"];
 
     try {
         $key = md5(time()).md5($params["username"]);
-        $newkey = ve_api_request($server_ip, $server_username, $server_password, "session.newkey", ["username" => $server_username, "key" => $key]);        
+        $newkey = ve_api_request($server_ip, $server_username, $server_password, "session.newkey", ["username" => $server_username, "key" => $key]);
         $error = ve_find_error($newkey);
-        
+
         if (!empty($error)) {
              return  ['success' => false, 'errorMsg' => $error];
         }

@@ -208,6 +208,25 @@ function dci_set_server_domain($params, $id, $domain) {
 		return $error;
 }
 
+function dcimanager_encript_password($pass, $func='EncryptPassword') {
+    $admin_data = DB::table('tbladmins')
+        ->leftJoin('tbladminperms', 'tbladmins.roleid', '=', 'tbladminperms.roleid')
+        ->where([
+            ['tbladmins.disabled', '=', 0],
+            ['tbladminperms.permid', '=', 81],
+        ])
+        ->select('tbladmins.username')
+        ->first();
+    $pass_data = localAPI($func, array("password2" => $pass), $admin_data->username);
+    logModuleCall("vmmanager:vm", $func, $pass, $pass_data['result']);
+
+    return $pass_data['result'] === 'success' ? $pass_data['password'] : "";
+}
+
+function dcimanager_decrypt_password($pass) {
+    return dcimanager_encript_password($pass, 'DecryptPassword');
+}
+
 function dcimanager_generate_random_string($length = 12) {
     $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
     $randomString = '';
@@ -230,7 +249,7 @@ function dcimanager_CreateAccount($params) {
 
         $user_data = DB::table('tblhosting')
             ->join('tblorders', 'tblhosting.orderid', '=', 'tblorders.id')
-            ->select('username')
+            ->select('username','password')
             ->where([
                 ['tblhosting.userid',  $params["clientsdetails"]["userid"]],
                 ['tblhosting.server', $params["serverid"]],
@@ -239,24 +258,28 @@ function dcimanager_CreateAccount($params) {
             ->first();
         $service_username = $user_data ? $user_data->username : $params["username"];
 
+        if ($user_data){
+            $service_username = $user_data->username;
+            $password = dcimanager_decrypt_password($user_data->password);
+            logModuleCall("vmmanager:vm", $password, $password, $password);
+            if(empty($password)) return "cant decrypt password";
+            DB::table('tblhosting')
+                ->where('id', $params["serviceid"])
+                ->update([
+                    'username' => $service_username,
+                    'password' => $user_data->password,
+                ]);
+        }else{
+            $service_username = $params["username"];
+            $password = dcimanager_generate_random_string();
+            $encript_pass = dcimanager_encript_password($password);
+            if(empty($password)) return "cant encrypt password";
+            DB::table('tblhosting')->where('id', $params["serviceid"])->update(['password' => $encript_pass]);
+        }
+
 	$user_list = dci_api_request($server_ip, $server_username, $server_password, "user", array());
 	$find_user = $user_list->xpath("/doc/elem[level='16' and name='".$service_username."']");
 	$user_id = $find_user[0]->id;
-
-        //Генерируем пароль пользователя, получаем  юзера с административными привелегиями,
-        //Шифруем пароль, пишем его в базу
-	$password = dcimanager_generate_random_string();
-        $admin_data = DB::table('tbladmins')
-            ->leftJoin('tbladminperms', 'tbladmins.roleid', '=', 'tbladminperms.roleid')
-            ->where([
-                ['tbladmins.disabled', '=', 0],
-                ['tbladminperms.permid', '=', 81],
-            ])
-            ->select('tbladmins.username')
-            ->first();
-        if (!$admin_data) return "Admin user not found!";
-	$pwd_results = localAPI("encryptpassword", array("password2" => $password), $admin_data->username);
-	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['password' => $pwd_results["password"]]);
 
 	if ($user_id == "") {
 		$user_create_param = array (
