@@ -1,4 +1,7 @@
 <?php
+/*
+ *  Module Version: 7.0.0
+ */
 
 use WHMCS\Database\Capsule as DB;
 
@@ -181,15 +184,6 @@ function ve_decrypt_password($pass) {
     return ve_encript_password($pass, 'DecryptPassword');
 }
 
-function ve_random_string($length = 12) {
-    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    $randomString = '';
-    for ($i = 0; $i < $length; $i++) {
-        $randomString .= $characters[rand(0, strlen($characters) - 1)];
-    }
-    return $randomString;
-}
-
 function vemanager_CreateAccount($params) {
 	global $op;
 	$op = "create";
@@ -214,7 +208,6 @@ function vemanager_CreateAccount($params) {
         if ($user_data){
             $service_username = $user_data->username;
             $password = ve_decrypt_password($user_data->password);
-            logModuleCall("vmmanager:vm", $password, $password, $password);
             if(empty($password)) return "cant decrypt password";
             DB::table('tblhosting')
                 ->where('id', $params["serviceid"])
@@ -224,10 +217,7 @@ function vemanager_CreateAccount($params) {
                 ]);
         }else{
             $service_username = $params["username"];
-            $password = ve_random_string();
-            $encript_pass = ve_encript_password($password);
-            if(empty($password)) return "cant encrypt password";
-            DB::table('tblhosting')->where('id', $params["serviceid"])->update(['password' => $encript_pass]);
+            $password = $params["password"];
         }
 
 	$user_list = ve_api_request($server_ip, $server_username, $server_password, "user", array());

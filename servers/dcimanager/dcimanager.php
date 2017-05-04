@@ -1,4 +1,8 @@
 <?php
+/*
+ *  Module Version: 7.0.0
+ */
+
 use WHMCS\Database\Capsule as DB;
 require_once 'lib/server.php';
 
@@ -261,7 +265,6 @@ function dcimanager_CreateAccount($params) {
         if ($user_data){
             $service_username = $user_data->username;
             $password = dcimanager_decrypt_password($user_data->password);
-            logModuleCall("vmmanager:vm", $password, $password, $password);
             if(empty($password)) return "cant decrypt password";
             DB::table('tblhosting')
                 ->where('id', $params["serviceid"])
@@ -271,10 +274,7 @@ function dcimanager_CreateAccount($params) {
                 ]);
         }else{
             $service_username = $params["username"];
-            $password = dcimanager_generate_random_string();
-            $encript_pass = dcimanager_encript_password($password);
-            if(empty($password)) return "cant encrypt password";
-            DB::table('tblhosting')->where('id', $params["serviceid"])->update(['password' => $encript_pass]);
+            $password = $params["password"];
         }
 
 	$user_list = dci_api_request($server_ip, $server_username, $server_password, "user", array());

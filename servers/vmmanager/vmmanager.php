@@ -1,4 +1,8 @@
 <?php
+/*
+ *  Module Version: 7.0.0
+ */
+
 use WHMCS\Database\Capsule as DB;
 
 function vmmanager_MetaData(){
@@ -189,15 +193,6 @@ function vm_decrypt_password($pass) {
     return vm_encript_password($pass, 'DecryptPassword');
 }
 
-function vm_random_string($length = 12) {
-    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    $randomString = '';
-    for ($i = 0; $i < $length; $i++) {
-        $randomString .= $characters[rand(0, strlen($characters) - 1)];
-    }
-    return $randomString;
-}
-
 function vmmanager_CreateAccount($params) {
     global $op;
     $op = "create";
@@ -222,7 +217,6 @@ function vmmanager_CreateAccount($params) {
     if ($user_data){
         $service_username = $user_data->username;
         $password = vm_decrypt_password($user_data->password);
-        logModuleCall("vmmanager:vm", $password, $password, $password);
         if(empty($password)) return "cant decrypt password";
         DB::table('tblhosting')
             ->where('id', $params["serviceid"])
@@ -232,10 +226,7 @@ function vmmanager_CreateAccount($params) {
             ]);
     }else{
         $service_username = $params["username"];
-        $password = vm_random_string();
-        $encript_pass = vm_encript_password($password);
-        if(empty($password)) return "cant encrypt password";
-        DB::table('tblhosting')->where('id', $params["serviceid"])->update(['password' => $encript_pass]);
+        $password = $params["password"];
     }
 
     $user_list = vm_api_request($server_ip, $server_username, $server_password, "user", array());
