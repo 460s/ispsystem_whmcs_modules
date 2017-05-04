@@ -495,7 +495,8 @@ function dci_Waiter($func, $filter, $param, $num) {
 }
 
 function dci_process_client_operation($func, $params) {
-	$id = dci_get_external_id($params);
+    if (isset($_POST["abort"])) return "Operation aborted by user";
+    $id = dci_get_external_id($params);
     if ($id == "") {
             return "Unknown server!";
     }
@@ -669,15 +670,35 @@ function dcimanager_reinstall($params) {
 }
 
 function dcimanager_reboot($params) {
-	global $op;
-	$op = "reboot";
-	return dci_process_client_operation("server.reboot", $params);
+        global $op;
+        $op = "reboot";
+
+        if (isset($_POST["a"]))
+            return dci_process_client_operation("server.reboot", $params);
+
+        return [
+            'templatefile' => 'alert',
+            'vars' => [
+                'action' => 'reboot',
+                'description' => 'Reboot Server'
+            ]
+        ];
 }
 
 function dcimanager_poweroff($params) {
-	global $op;
-	$op = "poweroff";
-	return dci_process_client_operation("server.poweroff", $params);
+        global $op;
+        $op = "stop";
+
+        if (isset($_POST["a"]))
+            return dci_process_client_operation("server.poweroff", $params);
+
+        return [
+            'templatefile' => 'alert',
+            'vars' => [
+                'action' => 'poweroff',
+                'description' => 'Stop Server'
+            ]
+        ];
 }
 
 function dcimanager_poweron($params) {

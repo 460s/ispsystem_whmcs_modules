@@ -360,10 +360,9 @@ function vmmanager_CreateAccount($params) {
 }
 
 function vm_process_operation($func, $params) {
+        if (isset($_POST["abort"])) return "Operation aborted by user";
 	$id = vm_get_external_id($params);
-        if ($id == "") {
-                return "Unknown vm!";
-        }
+        if (empty($id)) return "Unknown vm!";
 
         $server_ip = $params["serverip"];
         $server_username = $params["serverusername"];
@@ -459,13 +458,33 @@ function vmmanager_AdminCustomButtonArray() {
 function vmmanager_reboot($params) {
     global $op;
     $op = "reboot";
-    return vm_process_operation("vm.restart", $params);
+
+    if (isset($_POST["a"]))
+        return vm_process_operation("vm.restart", $params);
+
+    return [
+        'templatefile' => 'alert',
+        'vars' => [
+            'action' => 'reboot',
+            'description' => 'Reboot Server'
+        ]
+    ];
 }
 
 function vmmanager_poweroff($params) {
     global $op;
     $op = "stop";
-    return vm_process_operation("vm.stop", $params);
+
+    if (isset($_POST["a"]))
+        return vm_process_operation("vm.stop", $params);
+
+    return [
+        'templatefile' => 'alert',
+        'vars' => [
+            'action' => 'poweroff',
+            'description' => 'Stop Server'
+        ]
+    ];
 }
 
 function vmmanager_poweron($params) {

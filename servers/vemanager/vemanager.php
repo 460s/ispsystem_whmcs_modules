@@ -357,6 +357,7 @@ function vemanager_CreateAccount($params) {
 }
 
 function ve_process_operation($func, $params) {
+        if (isset($_POST["abort"])) return "Operation aborted by user";
 	$id = ve_get_external_id($params);
         if ($id == "") {
                 return "Unknown container!";
@@ -495,15 +496,35 @@ function vemanager_AdminCustomButtonArray() {
 }
 
 function vemanager_reboot($params) {
-	global $op;
-	$op = "reboot";
-	return ve_process_operation("vm.restart", $params);
+    global $op;
+    $op = "reboot";
+
+    if (isset($_POST["a"]))
+        return ve_process_operation("vm.restart", $params);
+
+    return [
+        'templatefile' => 'alert',
+        'vars' => [
+            'action' => 'reboot',
+            'description' => 'Reboot Server'
+        ]
+    ];
 }
 
 function vemanager_poweroff($params) {
-	global $op;
-	$op = "stop";
-	return ve_process_operation("vm.stop", $params);
+    global $op;
+    $op = "stop";
+
+    if (isset($_POST["a"]))
+        return ve_process_operation("vm.stop", $params);
+
+    return [
+        'templatefile' => 'alert',
+        'vars' => [
+            'action' => 'poweroff',
+            'description' => 'Stop Server'
+        ]
+    ];
 }
 
 function vemanager_poweron($params) {
