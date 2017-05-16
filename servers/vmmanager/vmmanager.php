@@ -1,6 +1,6 @@
 <?php
 /*
- *  Module Version: 7.0.0
+ *  Module Version: 7.0.1
  */
 
 use WHMCS\Database\Capsule as DB;
