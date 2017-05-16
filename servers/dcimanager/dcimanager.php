@@ -363,9 +363,9 @@ function dcimanager_CreateAccount($params) {
             "elid" => $server_id,
             "operation" => "ostemplate",
             "ostemplate" => $os,
-            "passwd" => $password,
-            "confirm" => $password,
-            "checkpasswd" => $password,
+            "passwd" => $params["password"],
+            "confirm" => $params["password"],
+            "checkpasswd" => $params["password"],
             "recipe" => $recipe]
         );
 
