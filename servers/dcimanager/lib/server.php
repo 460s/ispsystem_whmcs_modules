@@ -20,19 +20,19 @@ class Server
 
 	$url = "https://".$this->ip."/dcimgr";
 	$postfields = ["out" => "xml", "func" => $func, "authinfo" => $this->username.":".$this->password,];
-	$options = array ('CURLOPT_TIMEOUT' => '60');
+	$options = ['CURLOPT_TIMEOUT' => '60'];
 	foreach ($param as &$value) {
             $value = (string) $value;
         }
 
-        $response = curlCall($url, array_merge($postfields, $param), $options);
+        $response = curlCall($url, \array_merge($postfields, $param), $options);
 
-	logModuleCall("dcimanager:".$func, $op, array_merge($postfields, $param), $response, $response, array ($this->password));
+	logModuleCall("dcimanager:".$func, $op, \array_merge($postfields, $param), $response, $response, [$this->password]);
 
 	try {
-		$out = new SimpleXMLElement($response);
+		$out = new \SimpleXMLElement($response);
 	} catch (Exception $e) {
-		$out = simplexml_load_string($default_xml_error_string);
+		$out = \simplexml_load_string($default_xml_error_string);
 		$out->error->addChild("msg", $e->getMessage());
 	}
 
