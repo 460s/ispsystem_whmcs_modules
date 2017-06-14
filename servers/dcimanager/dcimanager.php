@@ -1,6 +1,6 @@
 <?php
 /*
- *  Module Version: 7.0.1
+ *  Module Version: 7.0.2
  */
 
 use WHMCS\Database\Capsule as DB;
@@ -465,7 +465,7 @@ function dci_process_operation($func, $params) {
  * @vsr $params массив параметров текущей услуги
  */
 function dci_HasItems($filter, $params) {
-    $server = new dci\Server($params);
+    $server = new Server($params);
     $serverXml = $server->apiRequest("server");
 
     $xp = "/doc/elem";
@@ -531,7 +531,7 @@ function dci_process_client_operation($func, $params) {
 function dcimanager_TerminateAccount($params) {
 	global $op;
 	$op = "terminate";
-        $server = new dci\Server($params);
+        $server = new Server($params);
 
 	$id = dci_get_external_id($params);
 	if (empty($id)) return "Unknown server!";
@@ -551,7 +551,7 @@ function dcimanager_TerminateAccount($params) {
         ];
         if (!dci_Waiter("dci_HasItems", $filter_off, $params, 6)) return "Can not poweroff server".$id;
 
-        $server_list = $server->apiRequest("server");
+	$server_list = $server->apiRequest("server");
 	$main_ip_x = $server_list->xpath("/doc/elem[id='".$id."']");
 	$main_ip = $main_ip_x[0]->ip;
 	if ($main_ip == "") return "Can not get main ip!";
@@ -734,13 +734,14 @@ function dcimanager_networkon($params) {
 	$op = "networkon";
 
 	$id = dci_get_external_id($params);
-    if ($id == "") {
-		return "Unknown server!";
-    }
+        if (empty($id)) return "Unknown server!";
 
-    $server_ip = $params["serverip"];
-    $server_username = $params["serverusername"];
-    $server_password = $params["serverpassword"];
+        $server_ip = $params["serverip"];
+        $server_username = $params["serverusername"];
+        $server_password = $params["serverpassword"];
+
+        $servers = dci_api_request($server_ip, $server_username, $server_password, "server.edit", array("elid" => (string)$id));
+        if ($servers->xpath("/doc[(disabled='on')]")) return "Server is blocked";
 
 	$server_list = dci_api_request($server_ip, $server_username, $server_password, "server.connection", array("elid" => (string)$id));
 
