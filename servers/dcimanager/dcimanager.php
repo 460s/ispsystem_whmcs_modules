@@ -1,6 +1,6 @@
 <?php
 /*
- *  Module Version: 7.0.2
+ *  Module Version: 7.0.3
  */
 
 use WHMCS\Database\Capsule as DB;
@@ -608,7 +608,13 @@ function dcimanager_ClientAreaCustomButtonArray() {
 }
 
 function dcimanager_AdminCustomButtonArray() {
-	return dcimanager_ClientAreaCustomButtonArray();
+    return [
+        "Reboot Server" => "reboot",
+        "Power off Server" => "poweroff",
+        "Power on Server" => "poweron",
+        "Server network off" => "networkoff",
+        "Server network on" => "networkon",
+    ];
 }
 
 function dcimanager_reinstall($params) {
