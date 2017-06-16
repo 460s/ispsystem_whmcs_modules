@@ -1,4 +1,7 @@
 <?php
+/*
+ *  Module Version: 7.0.0
+ */
 
 if (!defined("WHMCS")) {
 	die("This file cannot be accessed directly");
@@ -206,7 +209,7 @@ function billmanager_noc_LicenseUnSuspend($params,$license_id){
 	$suspend_request = billmanager_noc_api_request($params["serverhostname"],$params["serverusername"],$params["serverpassword"],'soft.resume',array("elid"=>$license_id));
 	$error = billmanager_noc_find_error($suspend_request);
 	if ($error != "") return $error;
-        
+
 	return 'success';
 }
 
@@ -384,7 +387,7 @@ function billmanager_noc_TerminateAccount($params){
 	    ['serviceid', '=', $params["serviceid"]],
 	    ['licensetype', '=', (array_key_exists("addon_change", $params)) ? 1 : 0]
 	])
-	->update(['serviceid' => 'NULL']);
+	->update(['serviceid' => NULL]);
 
 
 	return 'success';
@@ -463,9 +466,9 @@ function billmanager_noc_AdminSingleSignOn($params){
 
     try {
         $key = md5(time()).md5($params["username"]);
-        $newkey = billmanager_noc_api_request($server_ip, $server_username, $server_password, "session.newkey", ["username" => $server_username, "key" => $key]);        
+        $newkey = billmanager_noc_api_request($server_ip, $server_username, $server_password, "session.newkey", ["username" => $server_username, "key" => $key]);
         $error = billmanager_noc_find_error($newkey);
-        
+
         if (!empty($error)) {
              return  ['success' => false, 'errorMsg' => $error];
         }
