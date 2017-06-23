@@ -1,10 +1,12 @@
 <?php
 /*
- *  Module Version: 7.0.3
+ *  Module Version: 7.0.4
  */
 
-use WHMCS\Database\Capsule as DB;
 require_once 'lib/server.php';
+require_once 'lib/functions.php';
+
+use WHMCS\Database\Capsule as DB;
 
 function dcimanager_MetaData(){
     return [
@@ -458,41 +460,6 @@ function dci_process_operation($func, $params) {
 
     return !empty($error) ? $error : "success";
 }
-/*
- * Проверяет наличие элемента в списке серверов,
- * соответствующего заданному фильтру.
- * @var $filter массив параметров для xpath
- * @vsr $params массив параметров текущей услуги
- */
-function dci_HasItems($filter, $params) {
-    $server = new Server($params);
-    $serverXml = $server->apiRequest("server");
-
-    $xp = "/doc/elem";
-    foreach ($filter as $key => $val){
-        if(substr($key, -1) === "/")
-           $fstr .= "(".($val === "TRUE" ? "" : "not")."(".substr($key, 0, -1)."))";
-        else
-            $fstr .= "(".$key."='".$val."')";
-        if(next($filter)) $fstr.= " and ";
-    }
-    $xp.= "[".$fstr."]";
-    $findItem = $serverXml->xpath($xp);
-
-    logModuleCall("dcimanager", "xpath", $xp, $findItem, $findItem);
-
-    return count($findItem) > 0;
-}
-
-function dci_Waiter($func, $filter, $param, $num) {
-    while ($num) {
-        if ($func($filter, $param))
-            return true;
-        sleep(5);
-        $num--;
-    }
-    return false;
-}
 
 function dci_process_client_operation($func, $params) {
     if (isset($_POST["abort"])) return "Operation aborted by user";
@@ -531,7 +498,7 @@ function dci_process_client_operation($func, $params) {
 function dcimanager_TerminateAccount($params) {
 	global $op;
 	$op = "terminate";
-        $server = new Server($params);
+	$server = new Server($params);
 
 	$id = dci_get_external_id($params);
 	if (empty($id)) return "Unknown server!";
@@ -541,15 +508,15 @@ function dcimanager_TerminateAccount($params) {
             "id" => $id,
             "disabled/" => "FALSE",
             "poweroff/" => "FALSE",
-          ];
-        if (!dci_Waiter("dci_HasItems", $filter_en, $params, 6)) return "Can not enable server".$id;
+		];
+		if (!OperationWaiter("HasItems", $filter_en, $params, 6)) return "Can not enable server".$id;
 
 	dci_process_operation("server.poweroff", $params);
         $filter_off = [
             "id" => $id,
             "poweroff or powererror/" => "TRUE",
         ];
-        if (!dci_Waiter("dci_HasItems", $filter_off, $params, 6)) return "Can not poweroff server".$id;
+		if (!OperationWaiter("HasItems", $filter_off, $params, 6)) return "Can not poweroff server".$id;
 
 	$server_list = $server->apiRequest("server");
 	$main_ip_x = $server_list->xpath("/doc/elem[id='".$id."']");
