@@ -54,8 +54,8 @@ function dci_get_external_id($params)
 			['external_id', '<>', ''],
 		])
 		->first();
-	if ($result)
-		return $result->external_id;
+
+	if ($result) return $result->external_id;
 
 	return "";
 }
@@ -74,7 +74,14 @@ function dci_save_external_id($params, $external_id)
 function dcimanager_AdminServicesTabFields($params)
 {
 	$value = dci_get_external_id($params);
-	return array("DCImanager ID" => "<input type='text' name='dcimanager_id' size='16' value='" . $value . "' />");
+	$serverParam = GetServerParam($params["serviceid"]);
+
+	return [
+		"DCImgr ID" => "<input type='text' name='dcimanager_id' size='16' value='" . $value . "' />",
+		"Label" => $serverParam->label,
+		"IPMI IP" => $serverParam->ipmi_ip,
+		"Switch Port" => $serverParam->switch_port
+	];
 }
 
 function dcimanager_AdminServicesTabFieldsSave($params)
@@ -262,8 +269,8 @@ function dcimanager_CreateAccount($params)
 	$op = "create";
 
 	$server_ip = $params["serverip"];
-	if ($server_ip == "")
-		return "No server!";
+	if ($server_ip == "") return "No server!";
+
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
 	$recipe = $params["configoption3"] === "" ? "null" : $params["configoption3"];
@@ -299,12 +306,12 @@ function dcimanager_CreateAccount($params)
 	$user_id = $find_user[0]->id;
 
 	if ($user_id == "") {
-		$user_create_param = array(
+		$user_create_param = [
 			"sok" => "ok",
 			"level" => "lvUser",
 			"name" => $service_username,
 			"passwd" => $password,
-		);
+		];
 
 		$user_create = dci_api_request($server_ip, $server_username, $server_password, "user.edit", $user_create_param);
 		$user_id = $user_create->id;
@@ -395,6 +402,7 @@ function dcimanager_CreateAccount($params)
 	}
 
 	dci_save_external_id($params, $server_id);
+	SetServerParam($server_id , $params);
 
 	$dci_ip = "0.0.0.0";
 	$wait_time = 0;
