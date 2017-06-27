@@ -1,6 +1,6 @@
 <?php
 /*
- *  Module Version: 7.0.1
+ *  Module Version: 7.0.2
  */
 
 use WHMCS\Database\Capsule as DB;
@@ -492,15 +492,23 @@ function vemanager_ClientAreaCustomButtonArray() {
 }
 
 function vemanager_AdminCustomButtonArray() {
-	return vemanager_ClientAreaCustomButtonArray();
+	return [
+		"Reboot Server" => "m_reboot",
+		"Stop Server" => "m_poweroff",
+		"Start Server" => "poweron",
+		"Reinstall Server" => "reinstall",
+	];
+}
+
+function vemanager_m_reboot($params) {
+	global $op;
+	$op = "reboot";
+	return ve_process_operation("vm.restart", $params);
 }
 
 function vemanager_reboot($params) {
-    global $op;
-    $op = "reboot";
-
     if (isset($_POST["a"]))
-        return ve_process_operation("vm.restart", $params);
+        return vemanager_m_reboot($params);
 
     return [
         'templatefile' => 'alert',
@@ -511,12 +519,15 @@ function vemanager_reboot($params) {
     ];
 }
 
-function vemanager_poweroff($params) {
-    global $op;
-    $op = "stop";
+function vemanager_m_poweroff($params) {
+	global $op;
+	$op = "stop";
+	return ve_process_operation("vm.stop", $params);
+}
 
+function vemanager_poweroff($params) {
     if (isset($_POST["a"]))
-        return ve_process_operation("vm.stop", $params);
+        return vemanager_m_poweroff($params);
 
     return [
         'templatefile' => 'alert',

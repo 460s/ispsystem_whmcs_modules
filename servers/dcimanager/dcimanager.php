@@ -1,6 +1,6 @@
 <?php
 /*
- *  Module Version: 7.1.0
+ *  Module Version: 7.1.1
  */
 
 require_once 'lib/server.php';
@@ -608,8 +608,8 @@ function dcimanager_ClientAreaCustomButtonArray()
 function dcimanager_AdminCustomButtonArray()
 {
 	return [
-		"Reboot Server" => "reboot",
-		"Power off Server" => "poweroff",
+		"Reboot Server" => "m_reboot",
+		"Power off Server" => "m_poweroff",
 		"Power on Server" => "poweron",
 		"Server network off" => "networkoff",
 		"Server network on" => "networkon",
@@ -674,14 +674,17 @@ function dcimanager_reinstall($params)
 		);
 	}
 }
-
-function dcimanager_reboot($params)
+function dcimanager_m_reboot($params)
 {
 	global $op;
 	$op = "reboot";
+	return dci_process_client_operation("server.reboot", $params);
+}
 
+function dcimanager_reboot($params)
+{
 	if (isset($_POST["a"]))
-		return dci_process_client_operation("server.reboot", $params);
+		return dcimanager_m_reboot($params);
 
 	return [
 		'templatefile' => 'alert',
@@ -692,13 +695,17 @@ function dcimanager_reboot($params)
 	];
 }
 
-function dcimanager_poweroff($params)
+function dcimanager_m_poweroff($params)
 {
 	global $op;
 	$op = "stop";
+	return dci_process_client_operation("server.poweroff", $params);
+}
 
+function dcimanager_poweroff($params)
+{
 	if (isset($_POST["a"]))
-		return dci_process_client_operation("server.poweroff", $params);
+		return dcimanager_m_poweroff($params);
 
 	return [
 		'templatefile' => 'alert',
