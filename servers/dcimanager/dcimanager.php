@@ -1,6 +1,6 @@
 <?php
 /*
- *  Module Version: 7.1.1
+ *  Module Version: 7.1.2
  */
 
 require_once 'lib/server.php';
@@ -533,7 +533,6 @@ function dcimanager_TerminateAccount($params)
 	$filter_en = [
 		"id" => $id,
 		"disabled/" => "FALSE",
-		"poweroff/" => "FALSE",
 	];
 	if (!OperationWaiter("HasItems", $filter_en, $params, 6)) return "Can not enable server" . $id;
 
