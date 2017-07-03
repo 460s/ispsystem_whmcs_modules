@@ -542,7 +542,7 @@ function dcimanager_TerminateAccount($params)
 		"id" => $id,
 		"poweroff or powererror/" => "TRUE",
 	];
-	if (!OperationWaiter("HasItems", $filter_off, $params, 6)) return "Can not poweroff server" . $id;
+	if (!OperationWaiter("HasItems", $filter_off, $params, 12)) return "Can not poweroff server" . $id;
 
 	$server_list = $server->apiRequest("server");
 	$main_ip_x = $server_list->xpath("/doc/elem[id='" . $id . "']");
