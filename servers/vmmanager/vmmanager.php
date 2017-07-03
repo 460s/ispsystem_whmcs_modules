@@ -314,15 +314,18 @@ function vmmanager_CreateAccount($params) {
     else
         $xpath_expr = "/doc/elem[id='".$vm_id."' and not(installos) and not(installing)]";
 
-    while (1) {
-            $vm_list = vm_api_request($server_ip, $server_username, $server_password, "vm", array());
-            $find_vm = $vm_list->xpath($xpath_expr);
-            if (count($find_vm) == 0) {
-                    sleep(30);
-            } else {
-                    $vm_ip = $find_vm[0]->ip;
-                    break;
-            }
+	$num = 40;
+    while ($num) {
+		$vm_list = vm_api_request($server_ip, $server_username, $server_password, "vm", array());
+		$find_vm = $vm_list->xpath($xpath_expr);
+		logModuleCall("vmmanager", "xpath", $xpath_expr, $find_vm, $find_vm);
+		if (count($find_vm) == 0) {
+			sleep(30);
+			$num--;
+		} else {
+			$vm_ip = $find_vm[0]->ip;
+			break;
+		}
     }
 
     DB::table('tblhosting')->where('id', $params["serviceid"])->update(['dedicatedip' => $vm_ip]);
