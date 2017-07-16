@@ -36,6 +36,9 @@ function ispsystem_official_activate() {
 				$table->increments('id');
 				$table->integer('serviceid');
 				$table->integer('external_id');
+				$table->string('label')->nullable();
+				$table->string('ipmi_ip')->nullable();
+				$table->string('switch_port')->nullable();
 		});
 	} catch (Exception $e) {
 		echo "Unable to create my_table: {$e->getMessage()}";
