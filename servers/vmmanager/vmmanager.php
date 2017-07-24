@@ -38,16 +38,16 @@ function vmmanager_ConfigOptions() {
             "Description" => "MiB",
         ],
         "cpu" => [
-            "FriendlyName" => "Processors count",
+            "FriendlyName" => "CPU",
             "Type" => "text",
             "Size" => "8",
-            "Description" => "Unit",
+            "Description" => "Pcs",
         ],
         "cpufreq" => [
-            "FriendlyName" => "Processor frequency",
+            "FriendlyName" => "CPU weight",
             "Type" => "text",
             "Size" => "8",
-            "Description" => "MHz",
+            "Description" => "Cgroups weight for CPU",
         ],
         "family" => [
             "FriendlyName" => "Main IP address type",
