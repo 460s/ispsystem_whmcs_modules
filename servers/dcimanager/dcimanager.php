@@ -1,6 +1,6 @@
 <?php
 /*
- *  Module Version: 7.1.3
+ *  Module Version: 7.1.4
  */
 
 require_once 'lib/server.php';
@@ -62,9 +62,9 @@ function dci_get_external_id($params)
 
 function dci_save_external_id($params, $external_id)
 {
-	$vmid = dci_get_external_id($params);
+	$result = DB::table('mod_ispsystem')->select('serviceid')->where('serviceid', $params["serviceid"])->first();
 
-	if ($vmid) {
+	if ($result) {
 		DB::table('mod_ispsystem')->where('serviceid', $params["serviceid"])->update(['external_id' => $external_id]);
 	} else {
 		DB::table('mod_ispsystem')->insert(['external_id' => $external_id, 'serviceid' => $params["serviceid"]]);
