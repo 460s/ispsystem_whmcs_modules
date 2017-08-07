@@ -1,6 +1,6 @@
 <?php
 /*
- *  Module Version: 7.1.2
+ *  Module Version: 7.1.3
  */
 
 require_once 'lib/server.php';
@@ -381,6 +381,8 @@ function dcimanager_CreateAccount($params)
 	}
 
 	dci_set_server_domain($params, $server_id, $params["domain"]);
+	AddIpToServer($ip_count, "ipv4", $server_id, $params);
+	AddIpToServer($ipv6_count, "ipv6", $server_id, $params);
 
 	$dci_install = dci_api_request($server_ip, $server_username, $server_password, "server.operations",
 		["sok" => "ok",
@@ -437,39 +439,6 @@ function dcimanager_CreateAccount($params)
 
 	dci_set_server_owner($params, $server_id, $user_id);
 	dci_set_server_domain($params, $server_id, $params["domain"]);
-
-	$ip_list = "";
-	while ($ip_count > 0) {
-		$new_ip_param = array(
-			"plid" => $server_id,
-			"domain" => $params["domain"],
-			"sok" => "ok",
-			"iptype" => "public",
-			"ip" => "",
-			"family" => "ipv4",
-		);
-
-		$ip_add = dci_api_request($server_ip, $server_username, $server_password, "iplist.edit", $new_ip_param);
-		$ip_list .= $ip_add->ip . "\n";
-		$ip_count--;
-	}
-
-	while ($ipv6_count > 0) {
-		$new_ip_param = array(
-			"plid" => $server_id,
-			"domain" => $params["domain"],
-			"sok" => "ok",
-			"iptype" => "public",
-			"ip" => "",
-			"family" => "ipv6",
-		);
-
-		$ip_add = dci_api_request($server_ip, $server_username, $server_password, "iplist.edit", $new_ip_param);
-		$ip_list .= $ip_add->ip . "\n";
-		$ipv6_count--;
-	}
-
-	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['assignedips' => $ip_list]);
 
 	return "success";
 }

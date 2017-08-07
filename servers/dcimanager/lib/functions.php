@@ -94,3 +94,34 @@ function GetServerParam($serviceid)
 		return (object)['label' => 'Please visit the add-ons page, it will update the DCImgr module.'];
 	}
 }
+
+/*
+ * Добавление IP адресов к серверу
+ * @var $count Количество Ip адресов
+ * @var $type Тип адресов
+ * @var $serverId Id сервера в DCImgr
+ * @var $params Массив параметров WHMCS
+ */
+function AddIpToServer($count, $type, &$serverId, &$params)
+{
+	$server = new Server($params);
+
+	while ($count > 0) {
+		$new_ip_param = array(
+			"plid" => $serverId,
+			"domain" => $params["domain"],
+			"sok" => "ok",
+			"iptype" => "public",
+			"ip" => "",
+			"family" => $type,
+		);
+
+		$ip_add = $server->apiRequest("iplist.edit", $new_ip_param);
+		$ip_list .= $ip_add->ip . "\n";
+		$count--;
+	}
+
+	DB::table('tblhosting')
+		->where('id', $params["serviceid"])
+		->update(['assignedips' => DB::raw("CONCAT(assignedips,'".$ip_list."')")]);
+}
