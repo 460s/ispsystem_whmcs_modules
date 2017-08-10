@@ -1,6 +1,6 @@
 <?php
 /*
- *  Module Version: 7.1.4
+ *  Module Version: 7.1.5
  */
 
 require_once 'lib/server.php';
@@ -275,17 +275,7 @@ function dcimanager_CreateAccount($params)
 	$server_password = $params["serverpassword"];
 	$recipe = $params["configoption3"] === "" ? "null" : $params["configoption3"];
 
-	$user_data = DB::table('tblhosting')
-		->join('tblorders', 'tblhosting.orderid', '=', 'tblorders.id')
-		->select('username', 'password')
-		->where([
-			['tblhosting.userid', $params["clientsdetails"]["userid"]],
-			['tblhosting.server', $params["serverid"]],
-			['tblorders.status', "Active"],
-		])
-		->first();
-	$service_username = $user_data ? $user_data->username : $params["username"];
-
+	$user_data = CheckSimilarServers($params);
 	if ($user_data) {
 		$service_username = $user_data->username;
 		$password = dcimanager_decrypt_password($user_data->password);

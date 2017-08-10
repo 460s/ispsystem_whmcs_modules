@@ -1,5 +1,6 @@
 <?php
 use WHMCS\Database\Capsule as DB;
+use WHMCS\Service\Service as SERV;
 
 /*
  * Проверяет наличие элемента в списке серверов,
@@ -124,4 +125,36 @@ function AddIpToServer($count, $type, &$serverId, &$params)
 	DB::table('tblhosting')
 		->where('id', $params["serviceid"])
 		->update(['assignedips' => DB::raw("CONCAT(assignedips,'".$ip_list."')")]);
+}
+
+/*
+ * Проверка существования заказов для данного модуля
+ * @description Проверяет есть ли активные заказы у этого пользователя для
+ * этого модуля. Проверяет есть ли несколько машин в одном заказе
+ * @var $params Массив параметров WHMCS
+ */
+function CheckSimilarServers(&$params)
+{
+	$user_data = DB::table('tblhosting')
+		->join('tblorders', 'tblhosting.orderid', '=', 'tblorders.id')
+		->select('username', 'password')
+		->where([
+			['tblhosting.userid', $params["userid"]],
+			['tblhosting.server', $params["serverid"]],
+			['tblorders.status', "Active"],
+		])
+		->first();
+	if ($user_data) return $user_data;
+
+	$service = SERV::find($params["serviceid"]);
+	$user_data = DB::table('tblhosting')
+		->select('username', 'password')
+		->where([
+			['userid', $params["userid"]],
+			['orderid', $service->orderid],
+			['username', '<>', ''],
+		])
+		->first();
+
+	return $user_data;
 }
