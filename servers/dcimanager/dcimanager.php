@@ -243,7 +243,6 @@ function dcimanager_encript_password($pass, $func = 'EncryptPassword')
 		->select('tbladmins.username')
 		->first();
 	$pass_data = localAPI($func, array("password2" => $pass), $admin_data->username);
-	logModuleCall("vmmanager:vm", $func, $pass, $pass_data['result']);
 
 	return $pass_data['result'] === 'success' ? $pass_data['password'] : "";
 }
@@ -533,7 +532,7 @@ function dcimanager_SuspendAccount($params)
 function dcimanager_UnsuspendAccount($params)
 {
 	global $op;
-	$op = "unsusoend";
+	$op = "unsuspend";
 	return dci_process_operation("server.enable", $params);
 }
 

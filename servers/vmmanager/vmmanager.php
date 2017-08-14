@@ -395,7 +395,7 @@ function vmmanager_SuspendAccount($params) {
 
 function vmmanager_UnsuspendAccount($params) {
 	global $op;
-	$op = "unsusoend";
+	$op = "unsuspend";
 	return vm_process_operation("vm.start", $params);
 }
 
