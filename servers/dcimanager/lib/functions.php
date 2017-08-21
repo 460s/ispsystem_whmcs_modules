@@ -8,18 +8,18 @@ use WHMCS\Service\Service as SERV;
  * @var $filter массив параметров для xpath
  * @var $params массив параметров текущей услуги
  */
-function HasItems($filter, $params)
+function HasItems($obj, $params)
 {
 	$server = new Server($params);
-	$serverXml = $server->apiRequest("server");
+	$serverXml = $server->apiRequest($obj["func"], !empty($obj["param"]) ? $obj["param"] : []);
 
 	$xp = "/doc/elem";
-	foreach ($filter as $key => $val) {
+	foreach ($obj["filter"] as $key => $val) {
 		if (substr($key, -1) === "/")
 			$fstr .= "(" . ($val === "TRUE" ? "" : "not") . "(" . substr($key, 0, -1) . "))";
 		else
 			$fstr .= "(" . $key . "='" . $val . "')";
-		if (next($filter)) $fstr .= " and ";
+		if (next($obj["filter"])) $fstr .= " and ";
 	}
 	$xp .= "[" . $fstr . "]";
 	$findItem = $serverXml->xpath($xp);

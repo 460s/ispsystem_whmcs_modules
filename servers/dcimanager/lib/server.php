@@ -36,7 +36,7 @@ class Server
 		return $out;
     }
 
-	public function errorCheck(&$xml) {
+	private function errorCheck(&$xml) {
 		if ($xml->error)
 			$error = $xml->error["type"] . ":" . $xml->error->msg;
 

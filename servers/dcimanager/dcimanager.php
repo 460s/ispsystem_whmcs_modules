@@ -1,10 +1,12 @@
 <?php
 /*
- *  Module Version: 7.1.5
+ *  Module Version: 7.1.6
  */
-
 require_once 'lib/server.php';
 require_once 'lib/functions.php';
+
+define("SMALL_TIMER", "10");
+define("MEDIUM_TIMER", "20");
 
 use WHMCS\Database\Capsule as DB;
 
@@ -487,19 +489,38 @@ function dcimanager_TerminateAccount($params)
 	$id = dci_get_external_id($params);
 	if (empty($id)) return "Unknown server!";
 
+	//Разблокируем сервер
 	dci_process_operation("server.enable", $params);
-	$filter_en = [
-		"id" => $id,
-		"disabled/" => "FALSE",
+	$obj_en = [
+		"func" => "server",
+		"filter" => [
+			"id" => $id,
+			"disabled/" => "FALSE",
+		]
 	];
-	if (!OperationWaiter("HasItems", $filter_en, $params, 6)) return "Can not enable server " . $id;
+	if (!OperationWaiter("HasItems", $obj_en, $params, SMALL_TIMER))
+		return "The attempt to enable the server ".$id." failed.";
 
-	dci_process_operation("server.poweroff", $params);
-	$filter_off = [
-		"id" => $id,
-		"poweroff or powererror/" => "TRUE",
+	//Ожидаем включения всех подключений сервера
+	$obj_conn = [
+		"func" => "server.connection",
+		"param" => ["elid" => $id],
+		"filter" => ["func_in_progress/" => "FALSE"]
 	];
-	if (!OperationWaiter("HasItems", $filter_off, $params, 12)) return "Can not poweroff server " . $id;
+	if (!OperationWaiter("HasItems", $obj_conn, $params, MEDIUM_TIMER))
+		return "The attempt to enable the server ".$id." failed. Cause func_in_progress.";
+
+	//Отключаем сервер
+	dci_process_operation("server.poweroff", $params);
+	$obj_off = [
+		"func" => "server",
+		"filter" => [
+			"id" => $id,
+			"poweroff or powererror/" => "TRUE",
+		]
+	];
+	if (!OperationWaiter("HasItems", $obj_off, $params, SMALL_TIMER))
+		return "The attempt to poweroff the server ".$id." failed.";id;
 
 	$server_list = $server->apiRequest("server");
 	$main_ip_x = $server_list->xpath("/doc/elem[id='" . $id . "']");
