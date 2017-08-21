@@ -44,6 +44,12 @@ function dcimanager_ConfigOptions()
 			"Type" => "yesno",
 			"Description" => "Activate service without waiting for the OS installation",
 		],
+		"domain_template" => [
+			"FriendlyName" => "Domain template",
+			"Type" => "text",
+			"Size" => "32",
+			"Description" => "<br/><br/>@ID@ - service id<br/>@DOMAIN@ - domain name",
+		],
 	];
 }
 
@@ -228,10 +234,7 @@ function dci_set_server_domain($params, $id, $domain)
 				"domain" => $domain)));
 	}
 
-	if ($error == "")
-		return "success";
-	else
-		return $error;
+	return $error;
 }
 
 function dcimanager_encript_password($pass, $func = 'EncryptPassword')
@@ -275,6 +278,12 @@ function dcimanager_CreateAccount($params)
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
 	$recipe = $params["configoption3"] === "" ? "null" : $params["configoption3"];
+	if (!empty($params["configoption5"])) {
+		$params["domain"] = GenerateDomain($params);
+	}elseif (empty($params["domain"])) {
+		$params["configoption5"] = "@ID@.domain";
+		$params["domain"] = GenerateDomain($params);
+	}
 
 	$user_data = CheckSimilarServers($params);
 	if ($user_data) {
@@ -371,7 +380,9 @@ function dcimanager_CreateAccount($params)
 		}
 	}
 
-	dci_set_server_domain($params, $server_id, $params["domain"]);
+	$set_domain_result = dci_set_server_domain($params, $server_id, $params["domain"]);
+	if (!empty($set_domain_result)) return $set_domain_result;
+
 	AddIpToServer($ip_count, "ipv4", $server_id, $params);
 	AddIpToServer($ipv6_count, "ipv6", $server_id, $params);
 
@@ -388,7 +399,7 @@ function dcimanager_CreateAccount($params)
 
 	$error = dci_find_error($dci_install);
 	if ($error != "") {
-		if (dci_set_server_domain($params, $server_id, "free.ds") != "succes")
+		if (!empty(dci_set_server_domain($params, $server_id, "free.ds")))
 			logActivity("DCImanager. Can not reset domain for server " . $server_id);
 
 		return $error;
@@ -419,7 +430,7 @@ function dcimanager_CreateAccount($params)
 		sleep(30);
 
 		if ($wait_time > 7200) {
-			if (dci_set_server_domain($params, $server_id, "free.ds") != "succes")
+			if (!empty(dci_set_server_domain($params, $server_id, "free.ds")))
 				logActivity("DCImanager. Can not reset domain for server " . $server_id);
 
 			return "Can not install server!";
@@ -537,7 +548,7 @@ function dcimanager_TerminateAccount($params)
 	if (dci_find_error(dci_set_server_owner($params, $id, "no_owner")) != "")
 		return "Can not set owner";
 
-	if (dci_set_server_domain($params, $id, "free.ds") != "succes")
+	if (!empty(dci_set_server_domain($params, $id, "free.ds")))
 		logActivity("DCImanager. Can not reset domain for server " . $id);
 
 	return "success";
