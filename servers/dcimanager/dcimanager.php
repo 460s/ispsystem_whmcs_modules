@@ -505,9 +505,9 @@ function dcimanager_TerminateAccount($params)
 	$obj_conn = [
 		"func" => "server.connection",
 		"param" => ["elid" => $id],
-		"filter" => ["func_in_progress/" => "FALSE"]
+		"filter" => ["func_in_progress/" => "TRUE"]
 	];
-	if (!OperationWaiter("HasItems", $obj_conn, $params, MEDIUM_TIMER))
+	if (!OperationWaiter("NoItems", $obj_conn, $params, MEDIUM_TIMER))
 		return "The attempt to enable the server ".$id." failed. Cause func_in_progress.";
 
 	//Отключаем сервер
@@ -520,7 +520,7 @@ function dcimanager_TerminateAccount($params)
 		]
 	];
 	if (!OperationWaiter("HasItems", $obj_off, $params, SMALL_TIMER))
-		return "The attempt to poweroff the server ".$id." failed.";id;
+		return "The attempt to poweroff the server ".$id." failed.";
 
 	$server_list = $server->apiRequest("server");
 	$main_ip_x = $server_list->xpath("/doc/elem[id='" . $id . "']");

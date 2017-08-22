@@ -8,7 +8,7 @@ use WHMCS\Service\Service as SERV;
  * @var $filter массив параметров для xpath
  * @var $params массив параметров текущей услуги
  */
-function HasItems($obj, $params)
+function HasItems(&$obj, &$params)
 {
 	$server = new Server($params);
 	$serverXml = $server->apiRequest($obj["func"], !empty($obj["param"]) ? $obj["param"] : []);
@@ -29,6 +29,11 @@ function HasItems($obj, $params)
 	return count($findItem) > 0;
 }
 
+function NoItems(&$obj, &$params){
+	if (HasItems($obj, $params))
+		return false;
+	return true;
+}
 /*
  * Вейтер операций. Повторяет операцию $num раз пока не получит true
  * @out Возвращает true если получил от $func true и false если
@@ -37,7 +42,7 @@ function HasItems($obj, $params)
  * @var $filter/$param Параметры передаваемые в функцию
  * @var $num количество вызовов функции
  */
-function OperationWaiter($func, $filter, $param, $num)
+function OperationWaiter($func, &$filter, &$param, $num)
 {
 	while ($num) {
 		if ($func($filter, $param))
