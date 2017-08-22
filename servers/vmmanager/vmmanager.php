@@ -72,6 +72,12 @@ function vmmanager_ConfigOptions() {
             "Type" => "yesno",
             "Description" => "Activate service without waiting for the OS installation",
         ],
+		"domain_template" => [
+			"FriendlyName" => "Domain template",
+			"Type" => "text",
+			"Size" => "32",
+			"Description" => "<br/><br/>@ID@ - service id<br/>@DOMAIN@ - domain name",
+		],
     ];
 }
 
@@ -203,6 +209,12 @@ function vmmanager_CreateAccount($params) {
     $server_username = $params["serverusername"];
     $server_password = $params["serverpassword"];
     $recipe = $params["configoption9"] === "" ? "null" : $params["configoption9"];
+	if (!empty($params["configoption11"])) {
+		$params["domain"] = vmmanager_GenerateDomain($params);
+	}elseif (empty($params["domain"])) {
+		$params["configoption11"] = "@ID@.domain";
+		$params["domain"] = vmmanager_GenerateDomain($params);
+	}
 
     $user_data = DB::table('tblhosting')
         ->join('tblorders', 'tblhosting.orderid', '=', 'tblorders.id')
@@ -663,5 +675,31 @@ function vmmanager_AdminSingleSignOn($params){
             'errorMsg' => $e->getMessage(),
         ];
     }
+}
+
+/*
+ * Генерация доменного имени на основе заданного шаблона
+ * @var $params Массив параметров WHMCS
+ */
+function vmmanager_GenerateDomain(&$params)
+{
+	$domain = $params["configoption11"];
+	$domain = str_replace("@ID@", $params["serviceid"], $domain);
+	$domain = str_replace("@DOMAIN@", $params["domain"], $domain);
+
+	$num = "";
+	do{
+		$domain .= $num;
+		$query = DB::table('tblhosting')
+			->select('username')
+			->where([
+				['username', $domain],
+				['id', '!=', $params["serviceid"]]
+			])->get();
+		$num++;
+	}while(count($query) > 0);
+	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['domain' => $domain]);
+
+	return $domain;
 }
 ?>
