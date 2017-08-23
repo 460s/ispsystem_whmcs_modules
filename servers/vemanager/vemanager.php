@@ -90,6 +90,12 @@ function vemanager_ConfigOptions() {
             "Type" => "yesno",
             "Description" => "Activate service without waiting for the OS installation",
         ],
+		"domain_template" => [
+			"FriendlyName" => "Domain template",
+			"Type" => "text",
+			"Size" => "32",
+			"Description" => "<br/><br/>@ID@ - service id<br/>@DOMAIN@ - domain name",
+		],
     ];
 }
 
@@ -193,7 +199,13 @@ function vemanager_CreateAccount($params) {
 		return "No server!";
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
-        $recipe = $params["configoption12"] === "" ? "null" : $params["configoption12"];
+	$recipe = $params["configoption12"] === "" ? "null" : $params["configoption12"];
+	if (!empty($params["configoption14"])) {
+		$params["domain"] = vemanager_GenerateDomain($params);
+	}elseif (empty($params["domain"])) {
+		$params["configoption14"] = "@ID@.domain";
+		$params["domain"] = vemanager_GenerateDomain($params);
+	}
 
         $user_data = DB::table('tblhosting')
             ->join('tblorders', 'tblhosting.orderid', '=', 'tblorders.id')
@@ -727,5 +739,31 @@ function vemanager_AdminSingleSignOn($params){
             'errorMsg' => $e->getMessage(),
         ];
     }
+}
+
+/*
+ * Генерация доменного имени на основе заданного шаблона
+ * @var $params Массив параметров WHMCS
+ */
+function vemanager_GenerateDomain(&$params)
+{
+	$domain = $params["configoption14"];
+	$domain = str_replace("@ID@", $params["serviceid"], $domain);
+	$domain = str_replace("@DOMAIN@", $params["domain"], $domain);
+
+	$num = "";
+	do{
+		$domain .= $num;
+		$query = DB::table('tblhosting')
+			->select('username')
+			->where([
+				['username', $domain],
+				['id', '!=', $params["serviceid"]]
+			])->get();
+		$num++;
+	}while(count($query) > 0);
+	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['domain' => $domain]);
+
+	return $domain;
 }
 ?>

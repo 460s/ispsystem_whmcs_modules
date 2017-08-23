@@ -163,3 +163,29 @@ function CheckSimilarServers(&$params)
 
 	return $user_data;
 }
+
+/*
+ * Генерация доменного имени на основе заданного шаблона
+ * @var $params Массив параметров WHMCS
+ */
+function GenerateDomain(&$params)
+{
+	$domain = $params["configoption5"];
+	$domain = str_replace("@ID@", $params["serviceid"], $domain);
+	$domain = str_replace("@DOMAIN@", $params["domain"], $domain);
+
+	$num = "";
+	do{
+		$domain .= $num;
+		$query = DB::table('tblhosting')
+			->select('username')
+			->where([
+				['username', $domain],
+				['id', '!=', $params["serviceid"]]
+			])->get();
+		$num++;
+	}while(count($query) > 0);
+	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['domain' => $domain]);
+
+	return $domain;
+}

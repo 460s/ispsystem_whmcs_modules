@@ -100,6 +100,12 @@ function ispmanager_ConfigOptions() {
             "Size" => "32",
             "Description" => "<br/><br/>@ID@ - service id<br/>@DOMAIN@ - domain name",
         ],
+		"domain_template" => [
+			"FriendlyName" => "Domain template",
+			"Type" => "text",
+			"Size" => "32",
+			"Description" => "<br/><br/>@ID@ - service id<br/>@DOMAIN@ - domain name",
+		],
     ];
 }
 
@@ -179,6 +185,12 @@ function ispmanager_CreateAccount($params) {
         
 	if (array_key_exists("configoption15", $params) && $params["configoption15"] != "")
 		$service_username = ispmanager_GenerateUsername($params, $params["configoption15"]);
+	if (!empty($params["configoption16"])) {
+		$params["domain"] = ispmanager_GenerateDomain($params);
+	}elseif (empty($params["domain"])) {
+		$params["configoption16"] = "@ID@.domain";
+		$params["domain"] = ispmanager_GenerateDomain($params);
+	}
 
  	$user_list = ispmgr_api_request($server_ip, $server_username, $server_password, "user", array());
 	$find_user = $user_list->xpath("/doc/elem[level='16' and name='".$service_username."']");
@@ -547,6 +559,32 @@ function ispmanager_AdminSingleSignOn($params){
             'errorMsg' => $e->getMessage(),
         ];
     }
+}
+
+/*
+ * Генерация доменного имени на основе заданного шаблона
+ * @var $params Массив параметров WHMCS
+ */
+function ispmanager_GenerateDomain(&$params)
+{
+	$domain = $params["configoption16"];
+	$domain = str_replace("@ID@", $params["serviceid"], $domain);
+	$domain = str_replace("@DOMAIN@", $params["domain"], $domain);
+
+	$num = "";
+	do{
+		$domain .= $num;
+		$query = DB::table('tblhosting')
+			->select('username')
+			->where([
+				['username', $domain],
+				['id', '!=', $params["serviceid"]]
+			])->get();
+		$num++;
+	}while(count($query) > 0);
+	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['domain' => $domain]);
+
+	return $domain;
 }
 
 ?>
