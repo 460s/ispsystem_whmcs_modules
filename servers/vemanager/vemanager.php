@@ -719,7 +719,7 @@ function vemanager_AdminSingleSignOn($params){
 
         return [
             'success' => true,
-            'redirectTo' => "https://".$server_ip."/vmmgr?checkcookie=no&func=auth&username=".$server_username."&key=".$key,
+            'redirectTo' => "https://".$server_ip."/vemgr?checkcookie=no&func=auth&username=".$server_username."&key=".$key,
         ];
     } catch (Exception $e) {
          return [
