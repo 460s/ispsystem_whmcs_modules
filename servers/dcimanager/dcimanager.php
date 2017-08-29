@@ -85,10 +85,12 @@ function dcimanager_AdminServicesTabFields($params)
 	$serverParam = GetServerParam($params["serviceid"]);
 
 	return [
-		"DCImgr ID" => "<input type='text' name='dcimanager_id' size='16' value='" . $value . "' />",
+		"DCImgr Server ID" => "<input type='text' name='dcimanager_id' size='16' value='" . $value . "' />",
+		"DCImgr User Password" => DecryptPassword($params['model']->serviceProperties->get('UserPassword')),
 		"Label" => $serverParam->label,
 		"IPMI IP" => $serverParam->ipmi_ip,
-		"Switch Port" => $serverParam->switch_port
+		"Switch Port" => $serverParam->switch_port,
+
 	];
 }
 
@@ -237,26 +239,6 @@ function dci_set_server_domain($params, $id, $domain)
 	return $error;
 }
 
-function dcimanager_encript_password($pass, $func = 'EncryptPassword')
-{
-	$admin_data = DB::table('tbladmins')
-		->leftJoin('tbladminperms', 'tbladmins.roleid', '=', 'tbladminperms.roleid')
-		->where([
-			['tbladmins.disabled', '=', 0],
-			['tbladminperms.permid', '=', 81],
-		])
-		->select('tbladmins.username')
-		->first();
-	$pass_data = localAPI($func, array("password2" => $pass), $admin_data->username);
-
-	return $pass_data['result'] === 'success' ? $pass_data['password'] : "";
-}
-
-function dcimanager_decrypt_password($pass)
-{
-	return dcimanager_encript_password($pass, 'DecryptPassword');
-}
-
 function dcimanager_generate_random_string($length = 12)
 {
 	$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -288,18 +270,16 @@ function dcimanager_CreateAccount($params)
 	$user_data = CheckSimilarServers($params);
 	if ($user_data) {
 		$service_username = $user_data->username;
-		$password = dcimanager_decrypt_password($user_data->password);
+		$password = DecryptPassword($user_data->password);
 		if (empty($password)) return "cant decrypt password";
 		DB::table('tblhosting')
 			->where('id', $params["serviceid"])
-			->update([
-				'username' => $service_username,
-				'password' => $user_data->password,
-			]);
+			->update(['username' => $service_username]);
 	} else {
 		$service_username = $params["username"];
 		$password = $params["password"];
 	}
+	$params['model']->serviceProperties->save(["UserPassword" => EncriptPassword($password)]);
 
 	$user_list = dci_api_request($server_ip, $server_username, $server_password, "user", array());
 	$find_user = $user_list->xpath("/doc/elem[level='16' and name='" . $service_username . "']");

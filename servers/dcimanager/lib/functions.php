@@ -189,3 +189,32 @@ function GenerateDomain(&$params)
 
 	return $domain;
 }
+
+/*
+ * Шифровка пароля пароля на основании имени администратора
+ * @var $params Массив параметров WHMCS
+ * @var $func Имя функции для localAPI
+ */
+function EncriptPassword(&$pass, $func = 'EncryptPassword')
+{
+	$admin_data = DB::table('tbladmins')
+		->leftJoin('tbladminperms', 'tbladmins.roleid', '=', 'tbladminperms.roleid')
+		->where([
+			['tbladmins.disabled', '=', 0],
+			['tbladminperms.permid', '=', 81],
+		])
+		->select('tbladmins.username')
+		->first();
+	$pass_data = localAPI($func, array("password2" => $pass), $admin_data->username);
+
+	return $pass_data['result'] === 'success' ? $pass_data['password'] : "";
+}
+
+/*
+ * Дешифровка пароля пароля на основании имени администратора
+ * @var $params Массив параметров WHMCS *
+ */
+function DecryptPassword($pass)
+{
+	return EncriptPassword($pass, 'DecryptPassword');
+}
