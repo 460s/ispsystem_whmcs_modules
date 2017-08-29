@@ -1,6 +1,6 @@
 <?php
 /*
- *  Module Version: 7.1.6
+ *  Module Version: 7.1.7
  */
 require_once 'lib/server.php';
 require_once 'lib/functions.php';
