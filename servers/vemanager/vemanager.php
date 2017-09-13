@@ -604,9 +604,12 @@ function vemanager_ClientArea($params) {
 	$op = "client area";
 	$code = "";
 	if ($_POST["process_vemanager"] == "true") {
+		if (empty($params["username"])){
+			$code = "Authorization failed. User is empty";
+		}
 		$server_ip = $params["serverip"];
-	        $server_username = $params["serverusername"];
-        	$server_password = $params["serverpassword"];
+		$server_username = $params["serverusername"];
+		$server_password = $params["serverpassword"];
 
 		$key = md5(time()).md5($params["username"]);
 		$newkey = ve_api_request($server_ip, $server_username, $server_password, "session.newkey", array("username" => $params["username"],

@@ -574,16 +574,19 @@ function vmmanager_ClientArea($params) {
 	$op = "client area";
 
 	if ($_POST["process_vmmanager"] == "true") {
-                $authinfo = vm_request($params["serverip"], "auth", array("username" => $params["username"], "password" => $params["password"]));
-                $auth_id = $authinfo->auth;
+		if (empty($params["username"])){
+			$code = "Authorization failed. User is empty";
+		}
+		$authinfo = vm_request($params["serverip"], "auth", array("username" => $params["username"], "password" => $params["password"]));
+		$auth_id = $authinfo->auth;
 
-                if (isset($_POST["novnc"])){
-                    $elid = vm_get_external_id($params);
-                    $args = "&func=vm.novnc&newwindow=yes&elid=".$elid;
-                }
+		if (isset($_POST["novnc"])){
+			$elid = vm_get_external_id($params);
+			$args = "&func=vm.novnc&newwindow=yes&elid=".$elid;
+		}
 
-                header("Location: https://".$params["serverip"]."/vmmgr?auth=".$auth_id.$args);
-                exit;
+		header("Location: https://".$params["serverip"]."/vmmgr?auth=".$auth_id.$args);
+		exit;
 	} else {
 		$code = "<form action='clientarea.php' method='post' target='_blank'>
 			<input type='hidden' name='action' value='productdetails' />

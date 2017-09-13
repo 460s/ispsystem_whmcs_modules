@@ -351,6 +351,9 @@ function ispmanager_reseller_ClientArea($params) {
     $code = "";
 
     if ($_POST["process_ispmanager"] == "true") {
+        if (empty($params["username"])){
+            $code = "Authorization failed. User is empty";
+        }
         $server_ip = $params["serverip"];
         $server_username = $params["serverusername"];
         $server_password = $params["serverpassword"];

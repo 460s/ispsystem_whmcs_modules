@@ -1,6 +1,6 @@
 <?php
 /*
- *  Module Version: 7.1.7
+ *  Module Version: 7.1.8
  */
 require_once 'lib/server.php';
 require_once 'lib/functions.php';
@@ -747,6 +747,10 @@ function dcimanager_ServiceSingleSignOn(array $params)
 	$server_ip = $params["serverip"];
 	$server_username = $params["serverusername"];
 	$server_password = $params["serverpassword"];
+	$whmcs_user = $params["username"];
+	if (empty($whmcs_user)) {
+		return ['success' => false, 'errorMsg' => "user is empty"];
+    }
 
 	try {
 		$key = strtolower(dcimanager_generate_random_string(32));
@@ -755,21 +759,15 @@ function dcimanager_ServiceSingleSignOn(array $params)
 		$error = dci_find_error($newkey);
 		if ($error != "") {
 			logActivity("ServiceSingleSignOn error: " . $error);
-			return array(
-				'success' => false,
-				'errorMsg' => "Error",
-			);
+			return ['success' => false,	'errorMsg' => $error];
 		}
 
-		return array(
+		return [
 			'success' => true,
-			'redirectTo' => "https://" . $server_ip . "/dcimgr?checkcookie=no&func=auth&username=" . $params["username"] . "&key=" . $key,
-		);
+			'redirectTo' => "https://" . $server_ip . "/dcimgr?func=auth&username=" . $params["username"] . "&key=" . $key,
+		];
 	} catch (Exception $e) {
-		return array(
-			'success' => false,
-			'errorMsg' => "Error",
-		);
+		return ['success' => false,	'errorMsg' => "Error"];
 	}
 }
 
