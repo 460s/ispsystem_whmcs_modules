@@ -1,4 +1,8 @@
 <?php
+/*
+ *  Module Version: 7.0.1
+ */
+
 use WHMCS\Database\Capsule as DB;
 // Для работы с дополнениями нужно использовать хуки
 
