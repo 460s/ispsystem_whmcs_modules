@@ -92,7 +92,7 @@ function hook_ispsystem_partners_error($id,$message){
 function hook_ispsystem_partners_action($vars,$action){
     if (hook_ispsystem_partners_check($vars)) {
         $mypath = dirname(__FILE__);
-        require substr($mypath,0,strpos($mypath,'addons/ispsystem_partners'))."servers/billmanager_noc/billmanager_noc.php";
+		require_once substr($mypath,0,strpos($mypath,'addons/ispsystem_partners'))."servers/billmanager_noc/billmanager_noc.php";
 
 
         global $op;
@@ -173,7 +173,7 @@ add_hook('PreCronJob',1,function(){
     }
 
     $mypath = dirname(__FILE__);
-    require substr($mypath,0,strpos($mypath,'addons/ispsystem_partners'))."servers/billmanager_noc/billmanager_noc.php";
+	require_once substr($mypath,0,strpos($mypath,'addons/ispsystem_partners'))."servers/billmanager_noc/billmanager_noc.php";
 
     foreach ($result as $data) {
         if (!is_null($data->serviceid)){
