@@ -64,6 +64,7 @@ function SetServerParam($elid , $params)
 	$param = ["elid" => $elid];
 	$editXml = $server->apiRequest("server.edit", $param);
 	$label = $editXml->xpath("/doc/name/text()");
+	$mac = $editXml->xpath("/doc/mac/text()");
 
 	$connectXml = $server->apiRequest("server.connection", $param);
 	$switchID = $connectXml->xpath("/doc/elem[(type='Switch')][1]/id/text()");
@@ -75,12 +76,13 @@ function SetServerParam($elid , $params)
 
 	$param = ["plid" => $elid, "elid" => $ipmiID[0]];
 	$editIpmiXml = $server->apiRequest("server.connection.edit", $param);
-	$ipmiIP = $editIpmiXml->xpath("/doc/ip/text()");
+	$ipmiIP = $editIpmiXml->xpath("/doc/ipmiip/text()");
 
 	DB::table('mod_ispsystem')->where('external_id', $elid)->update([
 		'label' => $label[0],
 		'ipmi_ip' => $ipmiIP[0],
-		'switch_port' => $switchPort[0]
+		'switch_port' => $switchPort[0],
+		'mac' => $mac[0]
 	]);
 
 }
@@ -93,11 +95,11 @@ function GetServerParam($serviceid)
 {
 	try {
 		return DB::table('mod_ispsystem')
-			->select('label', 'ipmi_ip', 'switch_port')
+			->select('label', 'ipmi_ip', 'switch_port', 'mac')
 			->where('serviceid', $serviceid)
 			->first();
 	} catch (Exception $e) {
-		return (object)['label' => 'Please visit the add-ons page, it will update the DCImgr module.'];
+		return (object)['mac' => 'Please visit the add-ons page, it will update the DCImgr module.'];
 	}
 }
 
@@ -117,7 +119,7 @@ function AddIpToServer($count, $type, &$serverId, &$params)
 			"plid" => $serverId,
 			"domain" => $params["domain"],
 			"sok" => "ok",
-			"iptype" => "public",
+			"iptype" => empty($params["configoption6"]) ? "public" : $params["configoption6"],
 			"ip" => "",
 			"family" => $type,
 		);

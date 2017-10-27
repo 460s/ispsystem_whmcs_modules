@@ -1,6 +1,6 @@
 <?php
 /*
- *  Module Version: 7.1.8
+ *  Module Version: 7.1.9
  */
 require_once 'lib/server.php';
 require_once 'lib/functions.php';
@@ -50,6 +50,12 @@ function dcimanager_ConfigOptions()
 			"Size" => "32",
 			"Description" => "<br/><br/>@ID@ - service id<br/>@DOMAIN@ - domain name",
 		],
+		"ip_address_group" => [
+			"FriendlyName" => "IP address group",
+			"Type" => "text",
+			"Size" => "32",
+			"Default" => "public"
+		],
 	];
 }
 
@@ -85,18 +91,25 @@ function dcimanager_AdminServicesTabFields($params)
 	$serverParam = GetServerParam($params["serviceid"]);
 
 	return [
-		"DCImgr Server ID" => "<input type='text' name='dcimanager_id' size='16' value='" . $value . "' />",
+		"DCImgr Server ID" => "<input type='text' name='dcimanager_id' size='16' value='" . $value . "' /> 
+			You can use this field to force the server selection before the service is activated",
 		"DCImgr User Password" => DecryptPassword($params['model']->serviceProperties->get('UserPassword')),
 		"Label" => $serverParam->label,
 		"IPMI IP" => $serverParam->ipmi_ip,
 		"Switch Port" => $serverParam->switch_port,
+		"MAC" => $serverParam->mac,
 
 	];
 }
 
 function dcimanager_AdminServicesTabFieldsSave($params)
 {
-	dci_save_external_id($params, $_POST["dcimanager_id"]);
+	$current_id = dci_get_external_id($params);
+	$new_id = $_POST["dcimanager_id"];
+	if ($current_id != $new_id) {
+		dci_save_external_id($params, $new_id);
+		SetServerParam($new_id , $params);
+	}
 }
 
 function dci_api_request3($ip, $func, $param)
@@ -303,9 +316,15 @@ function dcimanager_CreateAccount($params)
 	$find_user = $user_list->xpath("/doc/elem[name='" . $server_username . "']");
 	$admin_id = $find_user[0]->id;
 
-	$server_list = dci_api_request($server_ip, $server_username, $server_password, "server", array());
-	$find_server = $server_list->xpath("/doc/elem[(owner='' or not(owner)) and (chassis_templ='" . $params["configoption1"] . "' or type='" . $params["configoption1"] . "') and hostname='free.ds' and not(blocked) and not(hwproblem) and not(diag_in_progress)]");
-	$server_id = $find_server[0]->id;
+	$ext_id = dci_get_external_id($params);
+	if (!empty($ext_id)) {
+		$server_id = $ext_id;
+	} else {
+		$server_list = dci_api_request($server_ip, $server_username, $server_password, "server", array());
+		$find_server = $server_list->xpath("/doc/elem[(owner='' or not(owner)) and (chassis_templ='" . $params["configoption1"] . "' or type='" . $params["configoption1"] . "') and hostname='free.ds' and not(blocked) and not(hwproblem) and not(diag_in_progress)]");
+		$server_id = $find_server[0]->id;
+	}
+
 
 	if ($server_id == "")
 		return "Can not find free server! " . $params["configoption1"] . ": " . count($find_server) . " " . $find_server[0]->type;
