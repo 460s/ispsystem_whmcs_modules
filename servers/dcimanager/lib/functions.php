@@ -58,11 +58,13 @@ function OperationWaiter($func, &$filter, &$param, $num)
 	return false;
 }
 
-/*
+/**
  * Получение и запись параметров сервера в mod_ispsystem
  * Параметры: наклейка, ip адрес ipmi, порт коммутатора
+ * @param $elid int Идентификатор сервера в панели
+ * @param $params array Массив параметров WHMCS
  */
-function SetServerParam($elid , $params)
+function SetServerParam(&$elid , &$params)
 {
 	$server = new Server($params);
 
@@ -92,9 +94,11 @@ function SetServerParam($elid , $params)
 
 }
 
-/*
- * Получение параметров из mod_ispsystem
+/**
+ * Получение параметров сервера из  таблицы mod_ispsystem
  * Параметры: наклейка, ip адрес ipmi, порт коммутатора
+ * @param $serviceid int Идентификатор  услуги в WHMCS
+ * @return object Объект сервера содержащий вышеизложенные параметры
  */
 function GetServerParam($serviceid)
 {
@@ -108,12 +112,12 @@ function GetServerParam($serviceid)
 	}
 }
 
-/*
+/**
  * Добавление IP адресов к серверу
- * @var $count Количество Ip адресов
- * @var $type Тип адресов
- * @var $serverId Id сервера в DCImgr
- * @var $params Массив параметров WHMCS
+ * @param $count int Количество Ip адресов
+ * @param $type string Тип адресов
+ * @param $serverId int Id сервера в DCImgr
+ * @param $params array Массив параметров WHMCS
  */
 function AddIpToServer($count, $type, &$serverId, &$params)
 {
@@ -139,11 +143,12 @@ function AddIpToServer($count, $type, &$serverId, &$params)
 		->update(['assignedips' => DB::raw("CONCAT(assignedips,'".$ip_list."')")]);
 }
 
-/*
+/**
  * Проверка существования заказов для данного модуля
  * @description Проверяет есть ли активные заказы у этого пользователя для
  * этого модуля. Проверяет есть ли несколько машин в одном заказе
- * @var $params Массив параметров WHMCS
+ * @param $params array Массив параметров WHMCS
+ * @return object
  */
 function CheckSimilarServers(&$params)
 {
@@ -171,9 +176,10 @@ function CheckSimilarServers(&$params)
 	return $user_data;
 }
 
-/*
+/**
  * Генерация доменного имени на основе заданного шаблона
- * @var $params Массив параметров WHMCS
+ * @param $params array Массив параметров WHMCS
+ * @return string
  */
 function GenerateDomain(&$params)
 {
@@ -197,10 +203,11 @@ function GenerateDomain(&$params)
 	return $domain;
 }
 
-/*
+/**
  * Шифровка пароля пароля на основании имени администратора
- * @var $params Массив параметров WHMCS
- * @var $func Имя функции для localAPI
+ * @param string $pass Строка с нешифрованным паролем
+ * @param string $func Имя функции для localAPI
+ * @return string
  */
 function EncriptPassword(&$pass, $func = 'EncryptPassword')
 {
@@ -217,9 +224,10 @@ function EncriptPassword(&$pass, $func = 'EncryptPassword')
 	return $pass_data['result'] === 'success' ? $pass_data['password'] : "";
 }
 
-/*
+/**
  * Дешифровка пароля пароля на основании имени администратора
- * @var $params Массив параметров WHMCS *
+ * @param string $pass Строка с шифрованным паролем
+ * @return string
  */
 function DecryptPassword(&$pass)
 {
@@ -387,11 +395,7 @@ function dcimanager_reinstall($params)
 			"checkpasswd" => $_POST["passwd"]]);
 		$error = $server->errorCheck($result);
 
-		if ($error != "") {
-			return "Error";
-		}
-
-		return "success";
+		return !empty($error) ? $error : "success";
 	} else {
 
 		return array(
