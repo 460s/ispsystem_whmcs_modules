@@ -451,6 +451,11 @@ function dcimanager_UsageUpdate($params)
 
 	$server = new Server($params);
 	$traffic_data = $server->AuthInfoRequest("trafficburstable");
+	$error = $server->errorCheck($traffic_data);
+	if ($error != "") {
+		logActivity("DCI usage error" . $error);
+		return;
+	}
 
 	$result = DB::table('tblhosting')
 		->select('tblhosting.id', 'mod_ispsystem.external_id')
@@ -460,7 +465,6 @@ function dcimanager_UsageUpdate($params)
 		->get();
 
 	foreach ($result as $data) {
-		logActivity("DCI" . $data->id);
 		$burst = $traffic_data->xpath("/doc/reportdata//elem[id='" . $data->external_id . "']/burst/text()");
 
 		DB::table('tblhosting')
