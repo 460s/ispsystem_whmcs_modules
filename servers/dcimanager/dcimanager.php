@@ -80,7 +80,7 @@ function dcimanager_AdminServicesTabFieldsSave($params)
 	$new_id = $_POST["dcimanager_id"];
 	if ($current_id != $new_id) {
 		dci_save_external_id($params, $new_id);
-		SetServerParam($new_id , $params);
+		SetServerParam($new_id, $params);
 	}
 }
 
@@ -97,7 +97,7 @@ function dcimanager_CreateAccount($params)
 	$recipe = $params["configoption3"] === "" ? "null" : $params["configoption3"];
 	if (!empty($params["configoption5"])) {
 		$params["domain"] = GenerateDomain($params);
-	}elseif (empty($params["domain"])) {
+	} elseif (empty($params["domain"])) {
 		$params["configoption5"] = "@ID@.domain";
 		$params["domain"] = GenerateDomain($params);
 	}
@@ -227,7 +227,7 @@ function dcimanager_CreateAccount($params)
 	}
 
 	dci_save_external_id($params, $server_id);
-	SetServerParam($server_id , $params);
+	SetServerParam($server_id, $params);
 
 	$dci_ip = "0.0.0.0";
 	$wait_time = 0;
@@ -286,7 +286,7 @@ function dcimanager_TerminateAccount($params)
 		]
 	];
 	if (!OperationWaiter("HasItems", $obj_en, $params, SMALL_TIMER))
-		return "The attempt to enable the server ".$id." failed.";
+		return "The attempt to enable the server " . $id . " failed.";
 
 	//Ожидаем включения всех подключений сервера
 	$obj_conn = [
@@ -295,7 +295,7 @@ function dcimanager_TerminateAccount($params)
 		"filter" => ["func_in_progress/" => "TRUE"]
 	];
 	if (!OperationWaiter("NoItems", $obj_conn, $params, MEDIUM_TIMER))
-		return "The attempt to enable the server ".$id." failed. Cause func_in_progress.";
+		return "The attempt to enable the server " . $id . " failed. Cause func_in_progress.";
 
 	//Отключаем сервер
 	dci_process_operation("server.poweroff", $params);
@@ -307,7 +307,7 @@ function dcimanager_TerminateAccount($params)
 		]
 	];
 	if (!OperationWaiter("HasItems", $obj_off, $params, SMALL_TIMER))
-		return "The attempt to poweroff the server ".$id." failed.";
+		return "The attempt to poweroff the server " . $id . " failed.";
 
 	$server_list = $server->AuthInfoRequest("server");
 	$main_ip_x = $server_list->xpath("/doc/elem[id='" . $id . "']");
@@ -389,7 +389,7 @@ function dcimanager_ServiceSingleSignOn(array $params)
 	$whmcs_user = $params["username"];
 	if (empty($whmcs_user)) {
 		return ['success' => false, 'errorMsg' => "user is empty"];
-    }
+	}
 
 	try {
 		$key = strtolower(dcimanager_generate_random_string(32));
@@ -399,15 +399,15 @@ function dcimanager_ServiceSingleSignOn(array $params)
 		$error = $server->errorCheck($newkey);
 		if (!empty($error)) {
 			logActivity("ServiceSingleSignOn error: " . $error);
-			return ['success' => false,	'errorMsg' => $error];
+			return ['success' => false, 'errorMsg' => $error];
 		}
 
 		return [
 			'success' => true,
-			'redirectTo' => "https://" . $params["serverip"]. "/dcimgr?func=auth&username=" . $params["username"] . "&key=" . $key,
+			'redirectTo' => "https://" . $params["serverip"] . "/dcimgr?func=auth&username=" . $params["username"] . "&key=" . $key,
 		];
 	} catch (Exception $e) {
-		return ['success' => false,	'errorMsg' => "Error"];
+		return ['success' => false, 'errorMsg' => "Error"];
 	}
 }
 
@@ -460,8 +460,8 @@ function dcimanager_UsageUpdate($params)
 		->get();
 
 	foreach ($result as $data) {
-		logActivity("DCI".$data->id);
-		$burst = $traffic_data->xpath("/doc/reportdata//elem[id='".$data->external_id."']/burst/text()");
+		logActivity("DCI" . $data->id);
+		$burst = $traffic_data->xpath("/doc/reportdata//elem[id='" . $data->external_id . "']/burst/text()");
 
 		DB::table('tblhosting')
 			->where('id', $data->id)

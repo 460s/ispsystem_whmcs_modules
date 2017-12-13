@@ -1,4 +1,5 @@
 <?php
+
 use WHMCS\Database\Capsule as DB;
 use WHMCS\Service\Service as SERV;
 
@@ -33,11 +34,13 @@ function HasItems(&$obj, &$params)
 	return count($findItem) > 0;
 }
 
-function NoItems(&$obj, &$params){
+function NoItems(&$obj, &$params)
+{
 	if (HasItems($obj, $params))
 		return false;
 	return true;
 }
+
 /**
  * Вейтер операций. Повторяет операцию $num раз пока не получит true
  * @param $func string функция для вызова в цикле
@@ -64,7 +67,7 @@ function OperationWaiter($func, &$filter, &$param, $num)
  * @param $elid int Идентификатор сервера в панели
  * @param $params array Массив параметров WHMCS
  */
-function SetServerParam(&$elid , &$params)
+function SetServerParam(&$elid, &$params)
 {
 	$server = new Server($params);
 
@@ -140,7 +143,7 @@ function AddIpToServer($count, $type, &$serverId, &$params)
 
 	DB::table('tblhosting')
 		->where('id', $params["serviceid"])
-		->update(['assignedips' => DB::raw("CONCAT(assignedips,'".$ip_list."')")]);
+		->update(['assignedips' => DB::raw("CONCAT(assignedips,'" . $ip_list . "')")]);
 }
 
 /**
@@ -188,7 +191,7 @@ function GenerateDomain(&$params)
 	$domain = str_replace("@DOMAIN@", $params["domain"], $domain);
 
 	$num = "";
-	do{
+	do {
 		$domain .= $num;
 		$query = DB::table('tblhosting')
 			->select('username')
@@ -197,7 +200,7 @@ function GenerateDomain(&$params)
 				['id', '!=', $params["serviceid"]]
 			])->get();
 		$num++;
-	}while(count($query) > 0);
+	} while (count($query) > 0);
 	DB::table('tblhosting')->where('id', $params["serviceid"])->update(['domain' => $domain]);
 
 	return $domain;
@@ -252,7 +255,7 @@ function dci_process_client_operation($func, &$params)
 
 	$server = new Server($params);
 	$key = strtolower(dcimanager_generate_random_string(32));
-	$newkey = $server->AuthInfoRequest("session.newkey",["username" => $params["username"], "key" => $key]);
+	$newkey = $server->AuthInfoRequest("session.newkey", ["username" => $params["username"], "key" => $key]);
 
 	$error = $server->errorCheck($newkey);
 	if (!empty($error)) {
@@ -339,7 +342,7 @@ function dci_set_server_domain($params, $id, $domain)
 				"sok" => "ok",
 				"plid" => $id,
 				"domain" => $domain]);
-		$error.= $server->errorCheck($out);
+		$error .= $server->errorCheck($out);
 	}
 
 	return $error;
@@ -403,6 +406,7 @@ function dcimanager_reinstall($params)
 		);
 	}
 }
+
 function dcimanager_m_reboot($params)
 {
 	global $op;
