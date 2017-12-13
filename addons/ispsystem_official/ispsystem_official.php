@@ -39,6 +39,7 @@ function ispsystem_official_activate() {
 				$table->string('label')->nullable();
 				$table->string('ipmi_ip')->nullable();
 				$table->string('switch_port')->nullable();
+				$table->string('mac')->nullable();
 		});
 	} catch (Exception $e) {
 		echo "Unable to create my_table: {$e->getMessage()}";

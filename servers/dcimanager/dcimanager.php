@@ -6,6 +6,7 @@ require_once 'lib/server.php';
 require_once 'lib/functions.php';
 
 use WHMCS\Database\Capsule as DB;
+use Carbon\Carbon as DateTime;
 
 function dcimanager_MetaData()
 {
@@ -445,59 +446,28 @@ function dcimanager_AdminSingleSignOn(array $params)
 
 function dcimanager_UsageUpdate($params)
 {
-	//TODO переписать
-	try {
-		global $op;
-		$op = "usage";
+	global $op;
+	$op = "usage";
 
-		$serverid = $params['serverid'];
-		$result = DB::table('tblhosting')
-			->join('mod_ispsystem', 'mod_ispsystem.serviceid', '=', 'tblhosting.id')
-			->where('tblhosting.server', '=', $serverid)
-			->select('tblhosting.id', 'mod_ispsystem.external_id')
-			->get();
+	$server = new Server($params);
+	$traffic_data = $server->AuthInfoRequest("trafficburstable");
 
-		if (empty($params['serverip'])) {
-			logActivity("DCImanager empty IP");
-			return;
-		}
+	$result = DB::table('tblhosting')
+		->select('tblhosting.id', 'mod_ispsystem.external_id')
+		->join('mod_ispsystem', 'mod_ispsystem.serviceid', '=', 'tblhosting.id')
+		->where('tblhosting.server', '=', $params['serverid'])
+		->whereNotNull('mod_ispsystem.external_id')
+		->get();
 
-		if (!$result) {
-			logActivity("DCImanager get stats error: " . mysql_error());
-			return;
-		}
-		$server = new Server($params);
-		$traffic_data = $server->AuthInfoRequest("traffic", ["sok" => "ok", "period" => "currentmonth"]);
+	foreach ($result as $data) {
+		logActivity("DCI".$data->id);
+		$burst = $traffic_data->xpath("/doc/reportdata//elem[id='".$data->external_id."']/burst/text()");
 
-		foreach ($result as $data) {
-			$external_id = $data->external_id;
-
-			if ($external_id == "")
-				continue;
-
-
-			$bwusage = 0;
-
-			$find_in = $traffic_data->xpath("//elem[id='" . $external_id . "']");
-			$find_out = $traffic_data->xpath("//elem[id='" . $external_id . "']");
-
-			$find_in = $find_in[0]->rx;
-			$find_out = $find_out[0]->tx;
-
-			$bwusage = 1024.0 * floatval($find_in) + 1024.0 * floatval($find_out);
-
-			if (isset($find_in['orig'])) {
-				$bwusage = floatval($find_in['orig']) / 1024 / 1024 + floatval($find_out['orig']) / 1024 / 1024;
-			}
-
-			DB::table('tblhosting')
-				->where('id', $data->id)
-				->update([
-					'bwusage' => $bwusage,
-					'lastupdate' => 'now()'
-				]);
-		}
-	} catch (Exception $e) {
-		logActivity("UsageUpdate error: " . $e->getMessage());
+		DB::table('tblhosting')
+			->where('id', $data->id)
+			->update([
+				'bwusage' => $burst[0],
+				'lastupdate' => DateTime::now()
+			]);
 	}
 }
