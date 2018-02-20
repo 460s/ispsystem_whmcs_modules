@@ -1,4 +1,4 @@
-<p>WARNING!!! All data on server will be lost. Please get backup, first.</p>
+<p>WARNING! All data on server will be lost. Please get backup, first.</p>
 <form method="post" action="clientarea.php?action=productdetails">
         <input type="hidden" name="id" value="{$serviceid}" />
         <input type="hidden" name="modop" value="custom" />

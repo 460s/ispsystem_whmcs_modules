@@ -1,11 +1,14 @@
 <?php
 
+define("MGR", "/dcimgr");
+
 class Server
 {
 	private $ip;
 	private $root_name;
 	private $password;
 	private $user_name;
+	private $user_password;
 
 	function __construct($params)
 	{
@@ -13,6 +16,7 @@ class Server
 		$this->root_name = $params["serverusername"];
 		$this->password = $params["serverpassword"];
 		$this->user_name = $params["username"];
+		$this->user_password = $params["password"];
 	}
 
 	public function AuthRequest($func, $auth, $param = [])
@@ -39,6 +43,14 @@ class Server
 		return $authinfo->auth;
 	}
 
+	public function GetSessionId()
+	{
+		$func = "auth";
+		$param = ["username" => $this->user_name, "password" => $this->user_password];
+		$authinfo = $this->ApiRequest($func, $param);
+		return $authinfo->auth;
+	}
+
 	public function errorCheck(&$xml)
 	{
 		if ($xml->error)
@@ -51,7 +63,7 @@ class Server
 		global $op;
 
 		$default_xml_error_string = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<doc><error type=\"curl\"/></doc>\n";
-		$url = "https://" . $this->ip . "/dcimgr";
+		$url = "https://" . $this->ip . MGR;
 		$postfields = ["out" => "xml", "func" => $func];
 		$options = ['CURLOPT_TIMEOUT' => '60'];
 

@@ -70,7 +70,6 @@ function dcimanager_AdminServicesTabFields($params)
 		"IPMI IP" => $serverParam->ipmi_ip,
 		"Switch Port" => $serverParam->switch_port,
 		"MAC" => $serverParam->mac,
-
 	];
 }
 
@@ -351,9 +350,22 @@ function dcimanager_ChangePackage($params)
 
 function dcimanager_ClientArea($params)
 {
-	if ($_POST["process"] == "true") {
-		$auth = dcimanager_ServiceSingleSignOn($params);
-		header("Location: " . $auth["redirectTo"]);
+	if (empty($params["username"])){
+		return "Authorization failed. User is empty";
+	}
+	if (isset($_POST["process_dcimgr"])) {
+		if (isset($_POST["login_dcimgr"])) {
+			$auth = dcimanager_ServiceSingleSignOn($params);
+			header("Location: " . $auth["redirectTo"]);
+		} elseif (isset($_POST["login_ipmi"])) {
+			$params["password"] = DecryptPassword($params['model']->serviceProperties->get('UserPassword'));
+			$server = new Server($params);
+			$elid = dci_get_external_id($params);
+			$auth = $server->GetSessionId();
+
+			//TODO проверять ошибку и не редиректить
+			header("Location: https://" . $params["serverip"] . MGR . "?auth=" . $auth . "&elid=" . $elid . "&func=ipmiredirect&newwindow=yes&value=IPMI%20S" . $elid);
+		}
 		exit;
 	}
 }
@@ -392,7 +404,7 @@ function dcimanager_ServiceSingleSignOn(array $params)
 	}
 
 	try {
-		$key = strtolower(dcimanager_generate_random_string(32));
+		$key = dcimanager_generate_random_string(32);
 		$server = new Server($params);
 		$newkey = $server->AuthInfoRequest("session.newkey", ["username" => $params["username"], "key" => $key]);
 
@@ -419,7 +431,7 @@ function dcimanager_AdminSingleSignOn(array $params)
 	$server_ip = $params["serverip"];
 	$server_username = $params["serverusername"];
 	try {
-		$key = strtolower(dcimanager_generate_random_string(32));
+		$key = dcimanager_generate_random_string(32);
 		$server = new Server($params);
 		$newkey = $server->AuthInfoRequest("session.newkey", ["username" => $server_username, "key" => $key]);
 

@@ -254,7 +254,7 @@ function dci_process_client_operation($func, &$params)
 	}
 
 	$server = new Server($params);
-	$key = strtolower(dcimanager_generate_random_string(32));
+	$key = dcimanager_generate_random_string(32);
 	$newkey = $server->AuthInfoRequest("session.newkey", ["username" => $params["username"], "key" => $key]);
 
 	$error = $server->errorCheck($newkey);
@@ -355,7 +355,7 @@ function dcimanager_generate_random_string($length = 12)
 	for ($i = 0; $i < $length; $i++) {
 		$randomString .= $characters[rand(0, strlen($characters) - 1)];
 	}
-	return $randomString;
+	return strtolower($randomString);
 }
 
 function dcimanager_reinstall($params)
@@ -379,7 +379,7 @@ function dcimanager_reinstall($params)
 		}
 
 		$server = new Server($params);
-		$key = strtolower(dcimanager_generate_random_string(32));
+		$key = dcimanager_generate_random_string(32);
 		$newkey = $server->AuthInfoRequest("session.newkey", ["username" => $params["username"], "key" => $key]);
 
 		$error = $server->errorCheck($newkey);
