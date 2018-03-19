@@ -19,7 +19,7 @@ function ispsystem_partners_config() {
 	$configarray = array(
 		"name" => "ISPsystem NOC Partner module",
 		"description" => "Module for ISPsystem partners - ISPmanager and VMmanager license integration",
-		"version" => "1.0",
+		"version" => "1.1",
 		"author" => "ISPsystem LLC",
 		"language" => "english",
 		"fields" => array(),

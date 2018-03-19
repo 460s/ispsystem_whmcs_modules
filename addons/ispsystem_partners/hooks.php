@@ -1,6 +1,6 @@
 <?php
 /*
- *  Module Version: 7.0.1
+ *  Module Version: 7.1.0
  */
 
 use WHMCS\Database\Capsule as DB;
@@ -132,6 +132,52 @@ function hook_ispsystem_partners_action($vars,$action){
 
     }
 }
+
+function hook_ispsystem_partners_addon_cancel(&$data, &$now){
+	if ($data->licensetype != 1) return;
+	$service_addon_id = $data->serviceid;
+
+	$addon = DB::table('tblhostingaddons')
+		->where('id', $service_addon_id)
+		->select('addonid','regdate','hostingid')
+		->first();
+	$addon_id = $addon->addonid;
+
+	$configuration = DB::table('tblmodule_configuration')
+		->where([
+			['entity_id', '=', $addon_id],
+			['setting_name', '=', "configoption2"],
+		])
+		->select('value')
+		->first();
+
+	if (empty($configuration->value)) return;
+
+	$date_now = new DateTime($now);
+	$date = new DateTime($addon->regdate);
+	$date_cancel =$date->add(new DateInterval('P'.(int)$configuration->value.'M'));
+	if ($date_cancel <= $date_now) {
+		logModuleCall("hook_ispsystem_partners", "find_cancel_lic", "find addon: ".$addon_id.", cancel date: ".$date_cancel->format('Y-m-d'));
+		$vars = [
+			"id" => $service_addon_id,
+			"userid" => 0,
+			"serviceid" => $addon->hostingid,
+			"addonid" => $addon_id
+		];
+		hook_ispsystem_partners_action($vars,'terminate');
+
+		DB::table('tblhostingaddons')
+			->where('id', $service_addon_id)
+			->update([
+				'status' => "Terminated",
+				'termination_date' => $date_now,
+			]);
+
+		return true;
+	}
+	return false;
+}
+
 //
 // ---------- Хуки
 //
@@ -151,11 +197,69 @@ add_hook('AddonUnsuspended',1,function($vars){ hook_ispsystem_partners_action($v
 // Удаление лицензии
 add_hook('AddonTerminated',1,function($vars){ hook_ispsystem_partners_action($vars,'terminate'); });
 
+add_hook('AddonConfigSave',1,function($vars){
+	logModuleCall("hook_ispsystem_partners", "AddonConfigSave", "AddonConfigSave");
+	$addon = DB::table('tbladdons')
+		->where('id', $vars['id'])
+		->select('module')
+		->first();
+	if ($addon->module != "billmanager_noc_addon") return;
+
+	$configuration = DB::table('tblmodule_configuration')
+		->where([
+			['entity_id', '=', $vars['id']],
+			['setting_name', '=', "configoption1"],
+		])
+		->select('value')
+		->first();
+
+	switch ($configuration->value) {
+		case "ISPmanager 5 Lite":
+			$price_id = 3541;
+			$addon_id = 0;
+			break;
+		case "ISPmanager 5 Business":
+			$price_id = 4601;
+			$addon_id = 4602;
+			break;
+		case "VMmanager 5 OVZ":
+			$price_id = 3651;
+			$addon_id = 3698;
+			break;
+		case "VMmanager 5 KVM":
+			$price_id = 3045;
+			$addon_id = 3049;
+			break;
+		case "VMmanager 5 Cloud":
+			$price_id = 3887;
+			$addon_id = 3889;
+			break;
+	}
+
+	$isp_addon = DB::table('ispsystem_noc_addon')->select('addonid')->where('addonid', $vars['id'])->first();
+	if ($isp_addon) {
+		DB::table('ispsystem_noc_addon')
+			->where('addonid', $vars['id'])
+			->update([
+				'priceid' => $price_id,
+				'priceaddon' => $addon_id
+			]);
+	} else {
+		$server = DB::table('tblservers')->select('id')->where('type', 'billmanager_noc')->first();
+		DB::table('ispsystem_noc_addon')->insert([
+			'addonid' => $vars['id'],
+			'priceid' => $price_id,
+			'serverid' => $server ? $server->id : 0,
+			'priceaddon' => $addon_id
+		]);
+	}
+});
+
 // Нужно
 // продлить привязанные лицензии
 // удалить из базы не привязанные лицензии
 add_hook('PreCronJob',1,function(){
-    $result = DB::table('ispsystem_noc')->select(DB::raw('id, licenseid, serviceid, serverid, (duedate - interval 1 day) duedate, (duedate + interval 1 month) terminatedate'))->get();
+    $result = DB::table('ispsystem_noc')->select(DB::raw('id, licenseid, licensetype, serviceid, serverid, (duedate - interval 1 day) duedate, (duedate + interval 1 month) terminatedate'))->get();
     $count_prolonged = 0;
     $count_deleted = 0;
     $timezone = date_default_timezone_get(); // Сохраним текущую временную зону
@@ -184,7 +288,9 @@ add_hook('PreCronJob',1,function(){
             // Если лицензия привязана
             if ($today >= $data->duedate) {
                 // Продлеваем лицензию за день до окончания срока
-
+				if (hook_ispsystem_partners_addon_cancel($data, $today)) {
+					continue;
+				}
                 // Найдем адрес, имя\пароль
                 $server_data = DB::table('tblservers')->select('id', 'hostname', 'username', 'password')->where('id', $data->serverid)->first();
                 if (!$server_data) {

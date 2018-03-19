@@ -1,6 +1,6 @@
 <?php
 /*
- *  Module Version: 7.0.0
+ *  Module Version: 7.1.0
  */
 
 if (!defined("WHMCS")) {
@@ -223,13 +223,6 @@ function billmanager_noc_MetaData(){
         'DisplayName' => 'BILLmanager NOC',
         'AdminSingleSignOnLabel' => 'Login to BILLmanager',
     ];
-}
-
-// Дополнительные поля для модуля
-function billmanager_noc_ConfigOptions() {
-	$configarray = array();
-
-	return $configarray;
 }
 
 // Заказ лицензии
