@@ -86,7 +86,7 @@ function SetServerParam(&$elid, &$params)
 
 	$param = ["plid" => $elid, "elid" => $ipmiID[0]];
 	$editIpmiXml = $server->AuthInfoRequest("server.connection.edit", $param);
-	$ipmiIP = $editIpmiXml->xpath("/doc/ipmiip/text()");
+	$ipmiIP = $editIpmiXml->xpath("/doc/ip/text()");
 
 	DB::table('mod_ispsystem')->where('external_id', $elid)->update([
 		'label' => $label[0],
