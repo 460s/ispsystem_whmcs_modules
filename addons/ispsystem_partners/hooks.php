@@ -4,7 +4,7 @@
  */
 
 use WHMCS\Database\Capsule as DB;
-// Для работы с дополнениями нужно использовать хуки
+define("HOOK_MODULE_NAME",     "hook_ispsystem_partners");
 
 // Проверка - наш ли это аддон
 function hook_ispsystem_partners_check ($vars){
@@ -51,7 +51,7 @@ function hook_ispsystem_partners_fill_params($vars){
 
     $server = hook_ispsystem_partners_find_server($vars["addonid"]);
     if ($server == 'error') {
-        logModuleCall("hook_ispsystem_partners", "find_server", "Can't find ISPsystem server");
+        logModuleCall(HOOK_MODULE_NAME, "find_server", "find_server", "Can't find ISPsystem server");
         return "error";
     }
     $params['serverhostname'] = $server['serverhostname'];
@@ -62,7 +62,7 @@ function hook_ispsystem_partners_fill_params($vars){
     // Id тарифа в ISPsystem
     $result = DB::table('ispsystem_noc_addon')->select('priceid', 'priceaddon')->where('addonid', $vars['addonid'])->first();
     if (!$result) {
-        logModuleCall("hook_ispsystem_partners", "price_find", "Can't find addon price");
+        logModuleCall(HOOK_MODULE_NAME, "price_find", "price_find","Can't find addon price");
         return "error";
     }
     $params['configoption1'] = $result->priceid;
@@ -74,7 +74,7 @@ function hook_ispsystem_partners_fill_params($vars){
     // Имя и IP лицензии
     $lic_data = DB::table('tblhosting')->select('domain', 'dedicatedip')->where('id', $vars['serviceid'])->first();
     if (!$lic_data) {
-        logModuleCall("hook_ispsystem_partners", "hosting_find", "Can't find tblhosting domain and ip");
+        logModuleCall(HOOK_MODULE_NAME, "hosting_find", "hosting_find","Can't find tblhosting domain and ip");
         return "error";
     }
     $params['customfields'] = ['ip' => $lic_data->dedicatedip, 'name' => $lic_data->domain."_addon"];
@@ -88,7 +88,7 @@ function hook_ispsystem_partners_fill_params($vars){
 
 // Переведем addon в Pending, чтобы хостер знал, что что-то не так
 function hook_ispsystem_partners_error($id,$message){
-    logModuleCall("hook_ispsystem_partners", $message['action'], $message['error']);
+    logModuleCall(HOOK_MODULE_NAME, $message['action'], $message['action'], $message['error']);
     DB::table('tblhostingaddons')->where('id', $id)->update(['status' => 'Pending']);
 }
 
@@ -157,7 +157,7 @@ function hook_ispsystem_partners_addon_cancel(&$data, &$now){
 	$date = new DateTime($addon->regdate);
 	$date_cancel =$date->add(new DateInterval('P'.(int)$configuration->value.'M'));
 	if ($date_cancel <= $date_now) {
-		logModuleCall("hook_ispsystem_partners", "find_cancel_lic", "find addon: ".$addon_id.", cancel date: ".$date_cancel->format('Y-m-d'));
+		logModuleCall(HOOK_MODULE_NAME, "find_cancel_lic", "find_cancel_lic","find addon: ".$addon_id.", cancel date: ".$date_cancel->format('Y-m-d'));
 		$vars = [
 			"id" => $service_addon_id,
 			"userid" => 0,
@@ -198,7 +198,7 @@ add_hook('AddonUnsuspended',1,function($vars){ hook_ispsystem_partners_action($v
 add_hook('AddonTerminated',1,function($vars){ hook_ispsystem_partners_action($vars,'terminate'); });
 
 add_hook('AddonConfigSave',1,function($vars){
-	logModuleCall("hook_ispsystem_partners", "AddonConfigSave", "AddonConfigSave");
+	logModuleCall(HOOK_MODULE_NAME, "AddonConfigSave", "AddonConfigSave","AddonConfigSave");
 	$addon = DB::table('tbladdons')
 		->where('id', $vars['id'])
 		->select('module')
@@ -276,7 +276,7 @@ add_hook('PreCronJob',1,function(){
             ->select('tbladmins.username')
             ->first();
     if (!$admin_data) {
-        logModuleCall("hook_ispsystem_partners", "find_server", "Can't find admin with API access");
+        logModuleCall(HOOK_MODULE_NAME, "find_server", "find_server", "Can't find admin with API access");
         return false;
     }
 
@@ -294,7 +294,7 @@ add_hook('PreCronJob',1,function(){
                 // Найдем адрес, имя\пароль
                 $server_data = DB::table('tblservers')->select('id', 'hostname', 'username', 'password')->where('id', $data->serverid)->first();
                 if (!$server_data) {
-                    logModuleCall("hook_ispsystem_partners", "find_server", "Can't find ISPsystem server");
+                    logModuleCall(HOOK_MODULE_NAME, "find_server", "find_server","Can't find ISPsystem server");
                     continue;
                 }
 
@@ -309,7 +309,7 @@ add_hook('PreCronJob',1,function(){
 
                 $answer = billmanager_noc_LicenseProlong($params,$data->licenseid);
                 if ($answer["answer"] != 'success') {
-                    logModuleCall("hook_ispsystem_partners", "prolong", "Can't prolong license ".$data->licenseid,$answer['answer']);
+                    logModuleCall(HOOK_MODULE_NAME, "prolong", "prolong","Can't prolong license ".$data->licenseid,$answer['answer']);
                     continue;
                 }
 
@@ -323,12 +323,12 @@ add_hook('PreCronJob',1,function(){
                 // Если сегодня лицензия удалится
                 // Уберем запись из базы
                 DB::table('ispsystem_noc')->where('id', '=', $data->id)->delete();
-                logModuleCall("hook_ispsystem_partners", "delete", "Deleting license from database: ".$data->licenseid);
+                logModuleCall(HOOK_MODULE_NAME, "delete", "delete","Deleting license from database: ".$data->licenseid);
                 $count_deleted++;
             }
         }
     }
     date_default_timezone_set($timezone); // Вернем обратно как было
-    logModuleCall("hook_ispsystem_partners", "cron", "Prolonged licenses: ".$count_prolonged.". Deleted licenses: ".$count_deleted);
+    logModuleCall(HOOK_MODULE_NAME, "cron", "cron", "Prolonged licenses: ".$count_prolonged.". Deleted licenses: ".$count_deleted);
     return true;
 });

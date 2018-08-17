@@ -2,12 +2,12 @@
 /*
  *  Module Version: 7.1.0
  */
+use WHMCS\Database\Capsule as DB;
+define("NOC_MODULE_NAME",     "billmanager_noc");
 
 if (!defined("WHMCS")) {
 	die("This file cannot be accessed directly");
 }
-
-use WHMCS\Database\Capsule as DB;
 
 // Поиск и формирование ошибки
 function billmanager_noc_find_error($xml) {
@@ -62,7 +62,7 @@ function billmanager_noc_get_param($params,$license_id){
 
 		$lickey_xml = $param_request->xpath("/doc/lickey");
 		$lickey = $lickey_xml[0];
-		logModuleCall("billmanager_noc", "lickey_req", $lickey);
+		logModuleCall(NOC_MODULE_NAME, "lickey_req", $param_request, $lickey);
 	}
 	// Сохраним ключ лицензии
 	if (!array_key_exists("addon_change", $params)) billmanager_noc_save_customfield($params, 3, $lickey);
@@ -87,7 +87,7 @@ function billmanager_noc_api_request($link, $username, $password, $func, $param)
 
 	$response = curlCall($link, array_merge($postfields, $param), $options);
 
-	logModuleCall("billmanager_noc:".$func, $op, array_merge($postfields, $param), $response, $response, array ($password));
+	logModuleCall(NOC_MODULE_NAME.$func, $op, array_merge($postfields, $param), $response, $response, array ($password));
 
 	$out = simplexml_load_string($default_xml_string);
 
@@ -263,7 +263,7 @@ function billmanager_noc_CreateAccount($params){
 				$prolong_answer = billmanager_noc_LicenseProlong($params,$data->licenseid);
 				if ($prolong_answer["answer"] != 'success') {  // Если не дали продлить по какой-то причине, то не привязываем
 					$use_old_license = false;
-					logModuleCall("billmanager_noc", "license_prolong", $prolong_answer["answer"]);
+					logModuleCall(NOC_MODULE_NAME, "license_prolong", $prolong_answer, $prolong_answer["answer"]);
 				}
 				$duedate = $prolong_answer["duedate"];
 			}else{ //Если лицензия не перешагнула duedate - нужно её включить
